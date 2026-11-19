@@ -1,5 +1,5 @@
 // Ejecuta Prisma con `bun --bun run prisma <comando>` para que Bun cargue .env.
-import { defineConfig, env } from "prisma/config";
+import { defineConfig } from "prisma/config";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
@@ -8,6 +8,9 @@ export default defineConfig({
     seed: "bun prisma/seed.ts",
   },
   datasource: {
-    url: env("DATABASE_URL"),
+    // `prisma generate` (en `bun install` y en el build) no necesita la base de
+    // datos, así que no se exige aquí. Los comandos que sí la usan fallan con un
+    // error claro si falta DATABASE_URL.
+    url: process.env.DATABASE_URL ?? "",
   },
 });

@@ -48,3 +48,6 @@ next-env.d.ts
 
 # base de datos local (PGlite)
 /.pglite/
+
+# configuración local de Claude Code
+/.claude/launch.json

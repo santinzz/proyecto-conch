@@ -1,0 +1,198 @@
+// Esquema de EcoPuntos. Basado en SPEC.md ("Modelo de datos") con estos ajustes
+// aprobados: Rule usa una clave de texto, Bill es único por
+// [kind, serviceNumber, periodStart] y se agregaron relaciones e índices.
+//
+// REGLA DE ORO: el saldo NUNCA se guarda como campo. Es la suma de PointEntry.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CUSTOMER
+  OPERATOR
+  ADMIN
+}
+
+enum EntryType {
+  PURCHASE
+  BRING_CONTAINER
+  RECYCLE
+  BILL_REDUCTION
+  CHALLENGE
+  REDEEM
+  DONATION
+  ADJUSTMENT
+}
+
+enum EvidenceStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum BillKind {
+  ELECTRICITY
+  WATER
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(CUSTOMER)
+  createdAt    DateTime @default(now())
+
+  entries        PointEntry[]
+  bills          Bill[]
+  services       ServiceAccount[]
+  salesOperated  Sale[]         @relation("SaleOperator")
+  salesClaimed   Sale[]         @relation("SaleClaimedBy")
+  recycleClaims  RecycleClaim[]
+  redemptions    Redemption[]
+}
+
+// Un número de servicio CFE o de agua pertenece a una sola cuenta.
+model ServiceAccount {
+  id     String   @id @default(cuid())
+  kind   BillKind
+  number String
+  userId String
+  user   User     @relation(fields: [userId], references: [id])
+
+  @@unique([kind, number])
+  @@index([userId])
+}
+
+model Product {
+  id          String  @id @default(cuid())
+  name        String
+  priceCents  Int
+  bulk        Boolean @default(false) // granel o retornable
+  local       Boolean @default(false)
+  plasticFree Boolean @default(false)
+  certified   Boolean @default(false)
+  active      Boolean @default(true)
+}
+
+// Venta del stand; genera el QR firmado.
+model Sale {
+  id               String    @id @default(cuid())
+  operatorId       String
+  operator         User      @relation("SaleOperator", fields: [operatorId], references: [id])
+  items            Json // [{productId, qty, priceCents, ecoScore}]
+  totalCents       Int
+  points           Int
+  broughtContainer Boolean   @default(false)
+  qrNonce          String    @unique
+  expiresAt        DateTime
+  claimedById      String?
+  claimedBy        User?     @relation("SaleClaimedBy", fields: [claimedById], references: [id])
+  claimedAt        DateTime?
+  createdAt        DateTime  @default(now())
+}
+
+model Bill {
+  id             String         @id @default(cuid())
+  userId         String
+  user           User           @relation(fields: [userId], references: [id])
+  kind           BillKind
+  serviceNumber  String
+  periodStart    DateTime
+  periodEnd      DateTime
+  consumption    Float // kWh o m3, confirmado por el usuario
+  ocrConsumption Float?
+  ocrConfidence  Float?
+  fileUrl        String
+  fileHash       String         @unique
+  status         EvidenceStatus @default(PENDING)
+  reviewNote     String?
+  createdAt      DateTime       @default(now())
+
+  @@unique([kind, serviceNumber, periodStart])
+  @@index([status])
+}
+
+model RecycleBin {
+  id       String         @id @default(cuid())
+  name     String
+  location String
+  code     String         @unique
+  claims   RecycleClaim[]
+}
+
+model RecycleClaim {
+  id        String         @id @default(cuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id])
+  binId     String
+  bin       RecycleBin     @relation(fields: [binId], references: [id])
+  pieces    Int
+  status    EvidenceStatus @default(PENDING)
+  createdAt DateTime       @default(now())
+
+  @@index([status])
+}
+
+model PointEntry {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  type      EntryType
+  points    Int // positivo o negativo
+  sourceId  String? // Sale, Bill, RecycleClaim, Redemption, "challengeId:userId"...
+  impact    Json? // {kwh, m3, co2Kg, containers, pieces}
+  createdAt DateTime  @default(now())
+
+  @@unique([type, sourceId]) // una misma evidencia no paga dos veces
+  @@index([userId, type, createdAt]) // saldo, historial y límites por periodo
+}
+
+// Valores ajustables del motor de puntos (src/lib/points/).
+// key: PURCHASE_A | PURCHASE_B | PURCHASE_C | BRING_CONTAINER | RECYCLE |
+//      BILL_REDUCTION | CHALLENGE
+// limitPeriod: "day" | "week" | "bill"
+model Rule {
+  key         String  @id
+  points      Int
+  limitCount  Int?
+  limitPeriod String?
+}
+
+model Challenge {
+  id       String   @id @default(cuid())
+  title    String
+  metric   String // ej. "BRING_CONTAINER_count", "ELECTRICITY_reduction_pct"
+  target   Float
+  reward   Int      @default(100)
+  startsAt DateTime
+  endsAt   DateTime
+}
+
+model Reward {
+  id          String       @id @default(cuid())
+  name        String
+  cost        Int
+  stock       Int
+  isDonation  Boolean      @default(false)
+  redemptions Redemption[]
+}
+
+model Redemption {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  rewardId  String
+  reward    Reward    @relation(fields: [rewardId], references: [id])
+  code      String    @unique // cupón de un solo uso
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}

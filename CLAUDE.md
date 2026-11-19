@@ -7,7 +7,7 @@ PWA de puntos por consumo y acciones sustentables, hecha para un proyecto escola
 ## Estado
 
 - [x] Fase 1: base del proyecto (Next.js, Prisma, Auth.js con roles, seed). Falta el despliegue en Vercel y Neon, que hace el equipo.
-- [ ] Fase 2: motor de puntos con pruebas
+- [x] Fase 2: motor de puntos con pruebas (87 pruebas).
 - [ ] Fase 3: caja y QR del ticket
 - [ ] Fase 4: recibos con OCR
 - [ ] Fase 5: reciclaje, retos y canjes
@@ -41,13 +41,22 @@ bun run lint
 bunx tsc --noEmit
 ```
 
+Pruebas:
+- Las unitarias van junto al código (`src/**/*.test.ts`).
+- Las de integración (`ledger.test.ts`) usan un PGlite en memoria que levanta `test/global-setup.ts` en el puerto 5434, con las migraciones aplicadas. No tocan tu base local.
+- Vitest corre con `pool: "threads"`, porque Bun no soporta `forks`, y con `TZ=UTC`, igual que Vercel.
+- PGlite ejecuta las transacciones de una en una, así que las pruebas de concurrencia pasan ahí aunque no haya bloqueo. El `FOR UPDATE` solo se demuestra contra Postgres real (Neon).
+
 Corre Prisma siempre con `bun --bun run prisma …` (los scripts ya lo hacen) para que se cargue `.env`.
 
 ## Estructura
 
 - `src/auth.ts`: configuración de Auth.js.
 - `src/lib/auth/session.ts`: `getSessionUser`, `requireUser(roles)` para páginas y `authorizeApi(roles)` para endpoints. Lee el rol de la base de datos, no del token.
-- `src/lib/points/`: todo lo que da, quita o suma puntos. Contiene `balance.ts` (saldo).
+- `src/lib/points/`: todo lo que da, quita o suma puntos.
+  - Funciones puras con su `*.test.ts` al lado: `eco-score.ts`, `purchase.ts`, `bill.ts` (reducción y `needsDetailedReview`), `limits.ts` (`applyLimit` y `periodRange` en hora de CDMX), `levels.ts`, `impact.ts` y `rules.ts` (claves de `Rule`).
+  - `ledger.ts`: la única puerta de escritura. Contiene `creditPurchase`, `creditBringContainer`, `creditRecycle`, `creditBillReduction` y `debitPoints`. Cada una recibe el `tx` de `db.$transaction`, bloquea la fila del usuario y truena si se llama fuera de una transacción. Los errores esperados son `PointsError` con `code`: `ALREADY_CREDITED`, `INSUFFICIENT_BALANCE`, `USER_NOT_FOUND` o `RULES_MISSING`.
+  - `balance.ts`: `getBalance` y `getLevel` para las páginas (solo en el servidor).
 - `src/lib/db.ts`: cliente Prisma único.
 - `src/lib/rate-limit.ts`: rate limit en memoria, por instancia.
 - `src/app/(auth)`: login y registro. `src/app/(cliente)`: pantallas del cliente. `src/app/operador` y `src/app/admin`: áreas protegidas.
@@ -71,6 +80,12 @@ Corre Prisma siempre con `bun --bun run prisma …` (los scripts ya lo hacen) pa
 - `Bill` es único por `[kind, serviceNumber, periodStart]`.
 - Se agregaron relaciones (`Sale`, `RecycleClaim`, `Redemption`), `createdAt` en `Sale` y `Bill`, y un índice `PointEntry(userId, type, createdAt)`.
 - El admin también puede entrar al área de operador.
+- Días y semanas de los límites: hora de Ciudad de México, con semanas de lunes a domingo.
+- Compras: `floor(subtotal del renglón / $10) × tasa`. El bono de nivel se aplica al total, redondeando hacia abajo, y sale del nivel que tenía el usuario antes de esa compra.
+- Recibos: se compara el consumo diario promedio, con días = `periodEnd − periodStart`. El porcentaje se redondea a 2 decimales antes de calcular los bloques de 5%. kWh o m³ ahorrados = (diario anterior − diario actual) × días del periodo actual. El primer recibo crea un movimiento de 0 puntos como línea base.
+- Envase extra en el mismo día: se registra con 0 puntos y cuenta como envase evitado.
+- Reciclaje que rebasa las 20 piezas semanales: se aprueba completo y registra todas las piezas en el impacto, pero solo paga las que caben (`impact.paidPieces`).
+- Nivel: puntos positivos de los últimos 180 días, sin contar `REDEEM` ni `DONATION`.
 - Pendiente para la Fase 4: estado `DRAFT` de recibos y qué hacer con los rechazados (las restricciones únicas bloquean volver a subirlos).
 
 ## Usuarios demo (seed)

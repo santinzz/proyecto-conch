@@ -35,7 +35,7 @@ describe("signTicket / verifyTicket", () => {
 
   test("un token vencido con firma falsa se reporta como inválido, no como vencido", () => {
     const [saleId, nonce, exp] = signTicket(ticket, SECRET).split(".");
-    expect(verifyTicket(`${saleId}.${nonce}.${exp}.firmafalsa`, SECRET, EXPIRES).reason).toBe("INVALID");
+    expect(verifyTicket(`${saleId}.${nonce}.${exp}.firmafalsa`, SECRET, EXPIRES)).toEqual({ ok: false, reason: "INVALID" });
   });
 
   test("formatos raros: inválido", () => {

@@ -14,6 +14,7 @@ export default defineConfig({
     pool: "threads", // Bun no soporta el pool "forks" de Vitest
     include: ["src/**/*.test.ts"],
     globalSetup: ["test/global-setup.ts"],
+    fileParallelism: false, // las pruebas de integración comparten una sola base de datos
     env: { TZ: "UTC" }, // como en Vercel: las fechas no deben depender de la zona de la máquina
   },
 });

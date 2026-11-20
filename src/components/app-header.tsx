@@ -13,11 +13,11 @@ export function AppHeader({ user }: { user: SessionUser }) {
   return (
     <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
       <div className="mx-auto flex max-w-2xl items-center justify-between gap-2 px-4 py-3">
-        <Link href="/" className="font-bold text-primary">
+        <Link href="/" className="shrink-0 font-bold whitespace-nowrap text-primary">
           🌱 EcoPuntos
         </Link>
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground">
+        <div className="flex min-w-0 items-center gap-2 text-sm">
+          <span className="truncate text-muted-foreground">
             {user.name} · {ROLE_LABEL[user.role]}
           </span>
           <form action={logoutAction}>

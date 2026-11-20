@@ -27,10 +27,23 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   });
 }
 
-/** Para páginas: exige sesión y, si se indican, uno de los roles. */
-export async function requireUser(roles?: readonly Role[]): Promise<SessionUser> {
+/** Ruta interna segura para volver después del login (evita redirecciones a otros sitios). */
+export function safeReturnTo(value: unknown): string | null {
+  return typeof value === "string" && value.startsWith("/") && !value.startsWith("//") && !value.includes("\\")
+    ? value
+    : null;
+}
+
+/**
+ * Para páginas: exige sesión y, si se indican, uno de los roles.
+ * `returnTo` hace que el login regrese a esa ruta (p. ej. un ticket escaneado).
+ */
+export async function requireUser(roles?: readonly Role[], options?: { returnTo?: string }): Promise<SessionUser> {
   const user = await getSessionUser();
-  if (!user) redirect("/login");
+  if (!user) {
+    const next = safeReturnTo(options?.returnTo);
+    redirect(next ? `/login?next=${encodeURIComponent(next)}` : "/login");
+  }
   if (roles && !roles.includes(user.role)) redirect("/sin-permiso");
   return user;
 }

@@ -2,6 +2,7 @@
 
 import { AuthError } from "next-auth";
 import { signIn, signOut } from "@/auth";
+import { safeReturnTo } from "@/lib/auth/session";
 
 export type LoginState = { error?: string } | undefined;
 
@@ -10,7 +11,7 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
     await signIn("credentials", {
       email: formData.get("email"),
       password: formData.get("password"),
-      redirectTo: "/",
+      redirectTo: safeReturnTo(formData.get("next")) ?? "/",
     });
   } catch (error) {
     // signIn lanza una redirección cuando sale bien; solo atrapamos errores de Auth.js.

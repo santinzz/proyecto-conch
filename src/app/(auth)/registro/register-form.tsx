@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { loginAction } from "@/lib/auth/actions";
 
-export function RegisterForm() {
+export function RegisterForm({ next }: { next?: string }) {
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
 
@@ -45,6 +45,7 @@ export function RegisterForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={onSubmit} className="space-y-4">
+          {next && <input type="hidden" name="next" value={next} />}
           <div className="space-y-2">
             <Label htmlFor="name">Nombre</Label>
             <Input id="name" name="name" autoComplete="name" required minLength={2} maxLength={80} />
@@ -77,7 +78,7 @@ export function RegisterForm() {
         </form>
         <p className="mt-4 text-center text-sm text-muted-foreground">
           ¿Ya tienes cuenta?{" "}
-          <Link href="/login" className="font-medium text-primary underline-offset-4 hover:underline">
+          <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-medium text-primary underline-offset-4 hover:underline">
             Inicia sesión
           </Link>
         </p>

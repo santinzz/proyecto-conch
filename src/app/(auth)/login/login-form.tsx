@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { loginAction } from "@/lib/auth/actions";
 
-export function LoginForm() {
+export function LoginForm({ next }: { next?: string }) {
   const [state, formAction, pending] = useActionState(loginAction, undefined);
 
   return (
@@ -18,6 +18,7 @@ export function LoginForm() {
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-4">
+          {next && <input type="hidden" name="next" value={next} />}
           <div className="space-y-2">
             <Label htmlFor="email">Correo</Label>
             <Input id="email" name="email" type="email" autoComplete="email" inputMode="email" required />
@@ -37,7 +38,7 @@ export function LoginForm() {
         </form>
         <p className="mt-4 text-center text-sm text-muted-foreground">
           ¿No tienes cuenta?{" "}
-          <Link href="/registro" className="font-medium text-primary underline-offset-4 hover:underline">
+          <Link href={next ? `/registro?next=${encodeURIComponent(next)}` : "/registro"} className="font-medium text-primary underline-offset-4 hover:underline">
             Regístrate
           </Link>
         </p>

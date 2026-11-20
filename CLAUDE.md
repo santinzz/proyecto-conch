@@ -8,7 +8,7 @@ PWA de puntos por consumo y acciones sustentables, hecha para un proyecto escola
 
 - [x] Fase 1: base del proyecto (Next.js, Prisma, Auth.js con roles, seed). Falta el despliegue en Vercel y Neon, que hace el equipo.
 - [x] Fase 2: motor de puntos con pruebas (87 pruebas).
-- [ ] Fase 3: caja y QR del ticket
+- [x] Fase 3: caja y QR del ticket (113 pruebas). Falta probar la cámara en un celular real, porque necesita HTTPS (Vercel).
 - [ ] Fase 4: recibos con OCR
 - [ ] Fase 5: reciclaje, retos y canjes
 - [ ] Fase 6: impacto, métricas y PWA
@@ -57,6 +57,10 @@ Corre Prisma siempre con `bun --bun run prisma …` (los scripts ya lo hacen) pa
   - Funciones puras con su `*.test.ts` al lado: `eco-score.ts`, `purchase.ts`, `bill.ts` (reducción y `needsDetailedReview`), `limits.ts` (`applyLimit` y `periodRange` en hora de CDMX), `levels.ts`, `impact.ts` y `rules.ts` (claves de `Rule`).
   - `ledger.ts`: la única puerta de escritura. Contiene `creditPurchase`, `creditBringContainer`, `creditRecycle`, `creditBillReduction` y `debitPoints`. Cada una recibe el `tx` de `db.$transaction`, bloquea la fila del usuario y truena si se llama fuera de una transacción. Los errores esperados son `PointsError` con `code`: `ALREADY_CREDITED`, `INSUFFICIENT_BALANCE`, `USER_NOT_FOUND` o `RULES_MISSING`.
   - `balance.ts`: `getBalance` y `getLevel` para las páginas (solo en el servidor).
+- `src/lib/qr.ts`: `signTicket` y `verifyTicket` (HMAC con `QR_SECRET`, comparación en tiempo constante, vence a los 15 min). Solo corre en el servidor. `src/lib/qr-token.ts` tiene `ticketUrl` y `extractTicketToken`, que también corren en el navegador.
+- `src/lib/sales.ts`: `createSale` (precios y Eco Score salen de la base de datos) y `claimSale` (reclamo atómico: marca la venta y acredita compra y envase en la misma transacción). Los errores son `SaleError` con `code`.
+- Endpoints de ventas: `POST /api/sales` (operador), `POST /api/sales/claim` (con sesión, con rate limit) y `GET /api/sales/:id` (estado para la caja; cada operador ve solo sus ventas).
+- Pantallas: `src/app/operador/caja` (caja) y `src/app/escanear` (escáner con `html5-qrcode`). `escanear` está fuera del grupo `(cliente)` para que el login regrese al ticket con `?next=`.
 - `src/lib/db.ts`: cliente Prisma único.
 - `src/lib/rate-limit.ts`: rate limit en memoria, por instancia.
 - `src/app/(auth)`: login y registro. `src/app/(cliente)`: pantallas del cliente. `src/app/operador` y `src/app/admin`: áreas protegidas.
@@ -86,6 +90,12 @@ Corre Prisma siempre con `bun --bun run prisma …` (los scripts ya lo hacen) pa
 - Envase extra en el mismo día: se registra con 0 puntos y cuenta como envase evitado.
 - Reciclaje que rebasa las 20 piezas semanales: se aprueba completo y registra todas las piezas en el impacto, pero solo paga las que caben (`impact.paidPieces`).
 - Nivel: puntos positivos de los últimos 180 días, sin contar `REDEEM` ni `DONATION`.
+- El QR contiene una URL (`/escanear?t=<token>`), así que también funciona con la cámara normal del teléfono.
+- Puede reclamar un ticket cualquier usuario con sesión, excepto el operador que registró esa venta.
+- `Sale.points` guarda los puntos base, sin bono. El bono de nivel se calcula al reclamar y queda en el `PointEntry`.
+- Se permite una venta sin productos si el cliente trajo su envase.
+- El límite de envase se cuenta para quien reclama el ticket.
+- Las pruebas de integración corren con `fileParallelism: false` porque comparten una sola base de datos. `test/db.ts` tiene `createTestDb` y `resetDb`.
 - Pendiente para la Fase 4: estado `DRAFT` de recibos y qué hacer con los rechazados (las restricciones únicas bloquean volver a subirlos).
 
 ## Usuarios demo (seed)

@@ -6,7 +6,7 @@ PWA de puntos por consumo y acciones sustentables, hecha para un proyecto escola
 
 ## Estado
 
-- [x] Fase 1: base del proyecto (Next.js, Prisma, Auth.js con roles, seed). Falta el despliegue en Vercel y Neon, que hace el equipo.
+- [x] Fase 1: base del proyecto (Next.js, Prisma, Auth.js con roles, seed). La base de producción ya está en Neon; falta el despliegue en Vercel.
 - [x] Fase 2: motor de puntos con pruebas (87 pruebas).
 - [x] Fase 3: caja y QR del ticket (113 pruebas). Falta probar la cámara en un celular real, porque necesita HTTPS (Vercel).
 - [ ] Fase 4: recibos con OCR
@@ -22,7 +22,8 @@ Se trabaja una fase a la vez: primero se presenta un plan corto y se espera el v
 - Next.js 16 (App Router, Turbopack) y TypeScript. **Next 16 cambió APIs:** antes de usar una, revisa `node_modules/next/dist/docs/`. Por ejemplo, `middleware` ahora se llama `proxy`.
 - `cacheComponents` está **desactivado** a propósito, porque la sesión y el saldo se leen en cada petición.
 - Tailwind 4 y shadcn/ui (estilo base-nova, sobre Base UI). `cn` viene del paquete `cn`. Para un botón que es enlace: `<Button nativeButton={false} render={<Link …/>}>`.
-- Prisma 7.10 con `@prisma/adapter-pg`. El cliente se genera en `src/generated/prisma` (está en .gitignore) y la configuración vive en `prisma.config.ts`.
+- Neon (Postgres): proyecto `small-base-81280859`, rama `production`, enlazado con el CLI `neon` (`neon.ts`; `.neon` está ignorado en git). `neon deploy` o `neon env pull` escriben `DATABASE_URL` (con pooling) y `DATABASE_URL_UNPOOLED` (directa) **en `.env`**, y sobrescriben lo que hubiera ahí.
+- Prisma 7.10 con `@prisma/adapter-pg`. `src/lib/db.ts` crea un `Pool` de `pg` con la URL con pooling y lo registra con `attachDatabasePool` (Vercel Fluid compute), como recomiendan las skills de Neon en `.claude/skills/`. El cliente se genera en `src/generated/prisma` (está en .gitignore) y la configuración vive en `prisma.config.ts`.
 - Auth.js v5 (`next-auth@5 beta`) con correo y contraseña, sesiones JWT y bcryptjs.
 - Zod 4 para validar entradas y Vitest para las reglas de negocio.
 
@@ -45,9 +46,12 @@ Pruebas:
 - Las unitarias van junto al código (`src/**/*.test.ts`).
 - Las de integración (`ledger.test.ts`) usan un PGlite en memoria que levanta `test/global-setup.ts` en el puerto 5434, con las migraciones aplicadas. No tocan tu base local.
 - Vitest corre con `pool: "threads"`, porque Bun no soporta `forks`, y con `TZ=UTC`, igual que Vercel.
-- PGlite ejecuta las transacciones de una en una, así que las pruebas de concurrencia pasan ahí aunque no haya bloqueo. El `FOR UPDATE` solo se demuestra contra Postgres real (Neon).
+- PGlite ejecuta las transacciones de una en una, así que las pruebas de concurrencia pasan ahí aunque no haya bloqueo, y no reproduce los deadlocks. La concurrencia se verificó contra Neon con peticiones HTTP simultáneas. En Neon apareció un deadlock entre `FOR UPDATE` y el candado `KEY SHARE` de las llaves foráneas; por eso `lockUser` usa `FOR NO KEY UPDATE`.
 
 Corre Prisma siempre con `bun --bun run prisma …` (los scripts ya lo hacen) para que se cargue `.env`.
+- Migraciones y seed usan `DATABASE_URL_UNPOOLED`, la conexión directa, porque el pooler de Neon rompe Prisma Migrate. Si no existe, usan `DATABASE_URL`.
+- **Cuidado:** hoy `.env` apunta a la rama `production` de Neon, así que `bun run dev`, `db:migrate` y `db:seed` tocan producción. Para volver a PGlite local, cambia `DATABASE_URL` y quita `DATABASE_URL_UNPOOLED` (las instrucciones están en `.env`).
+- `bun run start` (modo producción) en local necesita `AUTH_TRUST_HOST=true`. En Vercel no hace falta.
 
 ## Estructura
 

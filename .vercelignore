@@ -1,0 +1,10 @@
+# No subir secretos ni datos locales al desplegar con la CLI de Vercel.
+.env
+.env.*
+!.env.example
+.pglite
+.neon
+.claude
+node_modules
+.next
+src/generated

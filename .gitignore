@@ -51,3 +51,6 @@ next-env.d.ts
 
 # configuración local de Claude Code
 /.claude/launch.json
+
+# neon
+/.neon

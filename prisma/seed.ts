@@ -7,7 +7,8 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 import { PrismaClient, Role } from "../src/generated/prisma/client";
 
-const connectionString = process.env.DATABASE_URL;
+// Conexión directa (sin pooling) si existe, igual que las migraciones.
+const connectionString = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
 if (!connectionString) throw new Error("Falta DATABASE_URL");
 const demoPassword = process.env.SEED_DEMO_PASSWORD;
 if (!demoPassword || demoPassword.length < 8) {

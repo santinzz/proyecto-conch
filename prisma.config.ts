@@ -8,9 +8,10 @@ export default defineConfig({
     seed: "bun prisma/seed.ts",
   },
   datasource: {
-    // `prisma generate` (en `bun install` y en el build) no necesita la base de
-    // datos, así que no se exige aquí. Los comandos que sí la usan fallan con un
-    // error claro si falta DATABASE_URL.
-    url: process.env.DATABASE_URL ?? "",
+    // Migraciones y seed por la conexión DIRECTA de Neon (sin pooling): el pooler
+    // de Neon (PgBouncer en modo transacción) rompe Prisma Migrate. Si no existe
+    // (p. ej. PGlite local), se usa DATABASE_URL.
+    // `prisma generate` no necesita base de datos, así que aquí no se exige.
+    url: process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL ?? "",
   },
 });

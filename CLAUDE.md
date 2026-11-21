@@ -16,6 +16,9 @@ PWA de puntos por consumo y acciones sustentables, hecha para un proyecto escola
 
 Se trabaja una fase a la vez: primero se presenta un plan corto y se espera el visto bueno.
 
+- Repositorio (privado): https://github.com/santinzz/proyecto-conch, rama `main`.
+- Producción: https://ecopuntos-eight.vercel.app (proyecto `ecopuntos` en Vercel). Por ahora se despliega con `bunx vercel deploy --prod`.
+
 ## Stack
 
 - Bun 1.4 como gestor de paquetes y para correr scripts. No hay Node instalado.

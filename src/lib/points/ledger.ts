@@ -4,8 +4,9 @@
 // - Cada función de escritura debe llamarse dentro de `db.$transaction(async (tx) => …)`
 //   y recibe ese `tx`; así la evidencia (venta, recibo, reclamo…) y el PointEntry se
 //   guardan juntos o no se guarda nada.
-// - Antes de leer límites o saldo se bloquea la fila del usuario (SELECT … FOR UPDATE),
-//   para que dos peticiones simultáneas no se salten el límite ni dejen saldo negativo.
+// - Antes de leer límites o saldo se bloquea la fila del usuario
+//   (FOR NO KEY UPDATE) para que dos peticiones simultáneas no se salten el límite ni
+//   dejen saldo negativo.
 // - `@@unique([type, sourceId])` impide que la misma evidencia pague dos veces.
 // - El saldo nunca se guarda: es la suma de PointEntry.
 import { EntryType, type Prisma } from "@/generated/prisma/client";
@@ -75,8 +76,13 @@ function assertInTransaction(tx: Tx) {
   }
 }
 
+// FOR NO KEY UPDATE (y no FOR UPDATE): pone en fila las operaciones de puntos del
+// mismo usuario, pero no choca con el candado KEY SHARE que Postgres toma al
+// escribir una llave foránea hacia User (p. ej. Sale.claimedById o
+// PointEntry.userId). Con FOR UPDATE, dos reclamos simultáneos del mismo cliente
+// causaban un deadlock (40P01) en Neon.
 async function lockUser(tx: Tx, userId: string) {
-  const rows = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM "User" WHERE id = ${userId} FOR UPDATE`;
+  const rows = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM "User" WHERE id = ${userId} FOR NO KEY UPDATE`;
   if (rows.length === 0) throw new PointsError("USER_NOT_FOUND", "El usuario no existe");
 }
 

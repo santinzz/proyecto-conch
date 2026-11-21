@@ -50,7 +50,12 @@ Pruebas:
 
 Corre Prisma siempre con `bun --bun run prisma …` (los scripts ya lo hacen) para que se cargue `.env`.
 - Migraciones y seed usan `DATABASE_URL_UNPOOLED`, la conexión directa, porque el pooler de Neon rompe Prisma Migrate. Si no existe, usan `DATABASE_URL`.
-- **Cuidado:** hoy `.env` apunta a la rama `production` de Neon, así que `bun run dev`, `db:migrate` y `db:seed` tocan producción. Para volver a PGlite local, cambia `DATABASE_URL` y quita `DATABASE_URL_UNPOOLED` (las instrucciones están en `.env`).
+- **Ramas de Neon:**
+  - `production` es la que usa Vercel (variables cargadas en el proyecto de Vercel, solo para Production).
+  - `dev` es para el desarrollo local: es permanente, se creó como copia de `production` y `.env` apunta a ella. `bun run dev`, `db:migrate` y `db:seed` trabajan sobre `dev`.
+  - Para cambiar de rama usa `neon checkout <rama>`, que reescribe las URLs en `.env`. **Nunca hagas `neon checkout production` para desarrollar.**
+  - Flujo de migraciones: primero `bun run db:migrate` en `dev`. Para producción, aplica las migraciones con `DATABASE_URL_UNPOOLED` de `production` (`bun run db:deploy` con esa variable) antes de desplegar en Vercel.
+  - Las ramas nuevas que no se llamen `dev` expiran a los 7 días (política en `neon.ts`).
 - `bun run start` (modo producción) en local necesita `AUTH_TRUST_HOST=true`. En Vercel no hace falta.
 
 ## Estructura

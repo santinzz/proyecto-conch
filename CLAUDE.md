@@ -17,7 +17,9 @@ PWA de puntos por consumo y acciones sustentables, hecha para un proyecto escola
 Se trabaja una fase a la vez: primero se presenta un plan corto y se espera el visto bueno.
 
 - Repositorio (privado): https://github.com/santinzz/proyecto-conch, rama `main`.
-- Producción: https://ecopuntos-eight.vercel.app (proyecto `ecopuntos` en Vercel). Por ahora se despliega con `bunx vercel deploy --prod`.
+- Producción: https://ecopuntos-eight.vercel.app (proyecto `ecopuntos` en Vercel, conectado al repo de GitHub).
+  - **Cada push a `main` despliega a producción automáticamente.** Las otras ramas generan despliegues de preview, pero esos no tienen base de datos, porque las variables solo están en Production.
+  - Vercel **no** aplica migraciones. Si un cambio trae una migración nueva, aplícala primero en la rama `production` de Neon (`bun run db:deploy` con su `DATABASE_URL_UNPOOLED`) y después haz el push.
 
 ## Stack
 

@@ -4,6 +4,7 @@ PWA de puntos por consumo y acciones sustentables, hecha para un proyecto escola
 
 - Especificación: [SPEC.md](SPEC.md)
 - Comandos, convenciones y estado del proyecto: [CLAUDE.md](CLAUDE.md)
+- Publicar, preparar, probar y cerrar el piloto: [PILOTO.md](PILOTO.md)
 
 ## Arranque rápido (local)
 

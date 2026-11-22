@@ -12,9 +12,9 @@ PWA de puntos por consumo y acciones sustentables, hecha para un proyecto escola
 - [x] Fase 4: recibos con OCR (142 pruebas). Falta afinar el lector con recibos reales de CFE y de agua, y aplicar la migración `recibos_fase4` en la rama `production` de Neon antes de publicarla.
 - [x] Fase 5: reciclaje, retos y canjes (167 pruebas). Falta probar con un celular por HTTPS la cámara del operador al escanear cupones, y aplicar la migración `reciclaje_retos_canjes` en la rama `production` de Neon.
 - [x] Fase 6: impacto, métricas y PWA (179 pruebas). Falta probar la instalación en Android y iPhone por HTTPS: el navegador integrado del equipo de desarrollo no deja registrar service workers.
-- [ ] Fase 7: pulido para el piloto
+- [x] Fase 7: pulido para el piloto. Queda la prueba con 3 o 4 personas antes de abrirlo a todos: el guion está en [PILOTO.md](PILOTO.md), junto con el despliegue y el cierre.
 
-Se trabaja una fase a la vez: primero se presenta un plan corto y se espera el visto bueno.
+Todas las fases de SPEC.md están hechas; [PILOTO.md](PILOTO.md) explica cómo publicar, preparar, probar y cerrar el piloto. Para cambios nuevos se sigue igual: primero se presenta un plan corto y se espera el visto bueno.
 
 - Repositorio (privado): https://github.com/santinzz/proyecto-conch, rama `main`.
 - Producción: https://ecopuntos-eight.vercel.app (proyecto `ecopuntos` en Vercel, conectado al repo de GitHub).
@@ -93,6 +93,8 @@ Corre Prisma siempre con `bun --bun run prisma …` (los scripts ya lo hacen) pa
 - Endpoints de la Fase 6: `GET /api/me`, `GET /api/me/entries` (paginado con `cursor`), `GET /api/public/impact`, `GET /api/admin/metrics`, `GET /api/admin/export.csv?tipo=movimientos|semanas` y `GET|POST /api/admin/:entity`, `PATCH /api/admin/:entity/:id`.
 - Pantallas de la Fase 6: `(cliente)/mi-impacto`, `src/app/impacto` (pública), `admin` (panel) y `admin/productos|reglas|retos|recompensas|contenedores` con el editor genérico `admin/entity-manager.tsx`. Gráfica: `components/impact-chart.tsx` (Recharts) y cifras: `components/impact-tiles.tsx`.
 - PWA: `src/app/manifest.ts`, íconos en `public/icons/`, `public/sw.js` + `public/offline.html` y `components/service-worker.tsx` (registra el service worker solo en producción). Los encabezados de `/sw.js` están en `next.config.ts`.
+- `src/lib/admin/users.ts`: `setUserRole` (nadie cambia el suyo), `adjustUserPoints` (ajuste con motivo: crea un `Adjustment` y acredita con `adjustPoints` del ledger, sin dejar saldo negativo), `billFileStats` y `purgeBillFiles` (cierre del piloto). Endpoints: `PATCH /api/admin/users/:id`, `POST /api/admin/users/:id/adjust` y `POST /api/admin/bill-files/purge` (pide `{ "confirm": "BORRAR" }`).
+- Pantallas de la Fase 7: `privacidad` (pública), `(cliente)/movimientos` (historial paginado con `?antes=`), `admin/usuarios`, `admin/cierre`, y `not-found.tsx`, `error.tsx`, `global-error.tsx` y `loading.tsx` en español.
 - `src/lib/db.ts`: cliente Prisma único.
 - `src/lib/rate-limit.ts`: rate limit en memoria, por instancia.
 - `src/app/(auth)`: login y registro. `src/app/(cliente)`: pantallas del cliente. `src/app/operador` y `src/app/admin`: áreas protegidas.
@@ -145,6 +147,11 @@ Corre Prisma siempre con `bun --bun run prisma …` (los scripts ya lo hacen) pa
 - `/impacto` es pública y dinámica (`connection()`): nunca consulta la base durante el build.
 - Admin: nada se borra. Un producto se desactiva, un reto se termina cambiando su fecha final y las reglas solo se editan. Las fechas de los retos se capturan al minuto en la hora del navegador.
 - Service worker mínimo: solo muestra `/offline.html` sin conexión; no guarda en caché páginas ni API para no mostrar saldos o QR viejos.
+- Registro: hay que aceptar el aviso de privacidad (`acceptPrivacy`); se guarda la fecha en `User.privacyAcceptedAt`. El contacto del aviso sale de `PRIVACY_CONTACT_EMAIL`.
+- Ajustes manuales: tipo `ADJUSTMENT` con evidencia en `Adjustment` (motivo y admin). Nadie ajusta sus propios puntos. El cliente ve el motivo en su historial.
+- Cierre: `purgeBillFiles` borra los archivos de recibos que no están en revisión; los datos del recibo y los puntos se conservan.
+- Encabezados de seguridad en todo el sitio (`next.config.ts`): `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy` y cámara solo para el propio sitio.
+- `FE_SEN` = 0.444: el FE-SEN 2024, oficial vigente (aviso de SEMARNAT del 28 de febrero de 2025); el de 2025 sigue en proceso.
 - Tickets de prueba: `bun run tickets:demo` crea ventas reales del operador demo en la base local y guarda sus QR en `tickets-demo/` (ignorada en git).
 - `next.config.ts`: `allowedDevOrigins` permite abrir `next dev` desde el celular en la red local; `serverExternalPackages` y `outputFileTracingIncludes` llevan Tesseract.js a la función de `/api/bills`. Esto último no se ha probado en Vercel.
 

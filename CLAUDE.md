@@ -6,10 +6,10 @@ PWA de puntos por consumo y acciones sustentables, hecha para un proyecto escola
 
 ## Estado
 
-- [x] Fase 1: base del proyecto (Next.js, Prisma, Auth.js con roles, seed). La base de producción ya está en Neon; falta el despliegue en Vercel.
+- [x] Fase 1: base del proyecto (Next.js, Prisma, Auth.js con roles, seed). Desplegada en Vercel, con la base en Neon.
 - [x] Fase 2: motor de puntos con pruebas (87 pruebas).
 - [x] Fase 3: caja y QR del ticket (113 pruebas). Falta probar la cámara en un celular real, porque necesita HTTPS (Vercel).
-- [ ] Fase 4: recibos con OCR
+- [x] Fase 4: recibos con OCR (142 pruebas). Falta afinar el lector con recibos reales de CFE y de agua, y aplicar la migración `recibos_fase4` en la rama `production` de Neon antes de publicarla.
 - [ ] Fase 5: reciclaje, retos y canjes
 - [ ] Fase 6: impacto, métricas y PWA
 - [ ] Fase 7: pulido para el piloto
@@ -36,12 +36,13 @@ Se trabaja una fase a la vez: primero se presenta un plan corto y se espera el v
 
 ```bash
 bun install            # también corre prisma generate
-bun run db:local       # Postgres local con PGlite en 127.0.0.1:5433 (dejarlo abierto)
+bun run db:local       # Postgres local con PGlite: base en 127.0.0.1:5433 y base sombra en :5435 (dejarlo abierto)
 bun run db:migrate     # crear y aplicar migraciones en dev (prisma migrate dev)
 bun run db:seed        # datos demo; es idempotente
 bun run db:deploy      # aplicar migraciones en producción (Neon)
 bun run db:studio      # explorar la base de datos
 bun run dev            # servidor en http://localhost:3000
+bun run tickets:demo   # QR de tickets de prueba en tickets-demo/ (solo con la base local)
 bun run test           # Vitest
 bun run lint
 bunx tsc --noEmit
@@ -54,6 +55,8 @@ Pruebas:
 - PGlite ejecuta las transacciones de una en una, así que las pruebas de concurrencia pasan ahí aunque no haya bloqueo, y no reproduce los deadlocks. La concurrencia se verificó contra Neon con peticiones HTTP simultáneas. En Neon apareció un deadlock entre `FOR UPDATE` y el candado `KEY SHARE` de las llaves foráneas; por eso `lockUser` usa `FOR NO KEY UPDATE`.
 
 Corre Prisma siempre con `bun --bun run prisma …` (los scripts ya lo hacen) para que se cargue `.env`.
+- En local con PGlite, `db:migrate` usa la base sombra que levanta `db:local` (`SHADOW_DATABASE_URL`): PGlite ignora el nombre de la base, así que sin ella Prisma creaba su base sombra encima de la real (error P3005). Si `.env` apunta a Neon, quita esa variable.
+- En VS Code, `.vscode/tasks.json` tiene tareas para todo esto (Terminal → Run Task), incluida «0. Verificar todo» (pruebas, tipos y lint; deja el resultado en `.next/verificacion.log`).
 - Migraciones y seed usan `DATABASE_URL_UNPOOLED`, la conexión directa, porque el pooler de Neon rompe Prisma Migrate. Si no existe, usan `DATABASE_URL`.
 - **Ramas de Neon:**
   - `production` es la que usa Vercel (variables cargadas en el proyecto de Vercel, solo para Production).
@@ -75,6 +78,11 @@ Corre Prisma siempre con `bun --bun run prisma …` (los scripts ya lo hacen) pa
 - `src/lib/sales.ts`: `createSale` (precios y Eco Score salen de la base de datos) y `claimSale` (reclamo atómico: marca la venta y acredita compra y envase en la misma transacción). Los errores son `SaleError` con `code`.
 - Endpoints de ventas: `POST /api/sales` (operador), `POST /api/sales/claim` (con sesión, con rate limit) y `GET /api/sales/:id` (estado para la caja; cada operador ve solo sus ventas).
 - Pantallas: `src/app/operador/caja` (caja) y `src/app/escanear` (escáner con `html5-qrcode`). `escanear` está fuera del grupo `(cliente)` para que el login regrese al ticket con `?next=`.
+- `src/lib/bills.ts`: recibos de la Fase 4. `createBillDraft` (borrador con lo leído por el OCR), `submitBill` (el cliente confirma y envía; aplica el antifraude), `reviewBill` (el operador aprueba y acredita con `creditBillReduction`, o rechaza con motivo), `deleteBill` y `estimateBill`. Los errores son `BillError` con `code`. `submitBill` y `reviewBill` se llaman dentro de `db.$transaction`.
+- `src/lib/bills/`: `parse.ts` (lee servicio, periodo y consumo del texto, con pruebas), `file.ts` (tipo real del archivo por sus primeros bytes y SHA-256), `limits.ts` y `labels.ts`.
+- `src/lib/ocr.ts`: texto del recibo. Con un PDF usa unpdf; con una foto, Tesseract.js en español (descarga el idioma a la carpeta temporal la primera vez). Si falla devuelve null y el usuario escribe los datos.
+- Endpoints de recibos: `POST /api/bills` (subir, con rate limit), `PATCH /api/bills/:id` (confirmar y enviar), `DELETE /api/bills/:id`, `GET /api/bills/:id/file` (dueño u operador, sin caché), `GET /api/bills?status=` y `POST /api/bills/:id/review` (operador).
+- Pantallas de recibos: `src/app/(cliente)/recibos` (subir, confirmar, estado) y `src/app/operador/recibos` (cola y revisión).
 - `src/lib/db.ts`: cliente Prisma único.
 - `src/lib/rate-limit.ts`: rate limit en memoria, por instancia.
 - `src/app/(auth)`: login y registro. `src/app/(cliente)`: pantallas del cliente. `src/app/operador` y `src/app/admin`: áreas protegidas.
@@ -110,7 +118,15 @@ Corre Prisma siempre con `bun --bun run prisma …` (los scripts ya lo hacen) pa
 - Se permite una venta sin productos si el cliente trajo su envase.
 - El límite de envase se cuenta para quien reclama el ticket.
 - Las pruebas de integración corren con `fileParallelism: false` porque comparten una sola base de datos. `test/db.ts` tiene `createTestDb` y `resetDb`.
-- Pendiente para la Fase 4: estado `DRAFT` de recibos y qué hacer con los rechazados (las restricciones únicas bloquean volver a subirlos).
+- Recibos: estado propio `BillStatus` con `DRAFT` (subido, sin confirmar). Lo leído por el OCR va en columnas `ocr*` aparte de lo confirmado, y las restricciones únicas solo aplican a lo confirmado.
+- El archivo del recibo se guarda en la base (`BillFile`, BYTEA) y no en Vercel Blob: queda privado detrás de los permisos y funciona igual en local. Se borra al terminar el piloto.
+- Un recibo rechazado se corrige y se reenvía (vuelve a `PENDING`), o se borra. El cliente puede borrar borradores y rechazados.
+- El número de servicio queda ligado a la cuenta (`ServiceAccount`) al aprobar. Al enviar se rechaza si ya es de otra cuenta o está en un recibo pendiente de otra persona.
+- Periodos: de 20 a 100 días, sin terminar en el futuro y sin encimarse con otro recibo pendiente o aprobado del mismo servicio (se toleran 3 días). Se compara contra el recibo APROBADO anterior.
+- Revisión detallada: además de lo que pide SPEC.md, también si el número de servicio o el inicio del periodo no coinciden con lo leído por el OCR.
+- Nadie valida su propio recibo, igual que el operador no canjea sus propias ventas.
+- Tickets de prueba: `bun run tickets:demo` crea ventas reales del operador demo en la base local y guarda sus QR en `tickets-demo/` (ignorada en git).
+- `next.config.ts`: `allowedDevOrigins` permite abrir `next dev` desde el celular en la red local; `serverExternalPackages` y `outputFileTracingIncludes` llevan Tesseract.js a la función de `/api/bills`. Esto último no se ha probado en Vercel.
 
 ## Usuarios demo (seed)
 

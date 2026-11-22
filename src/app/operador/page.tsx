@@ -2,17 +2,24 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { AREA_ROLES, requireUser } from "@/lib/auth/session";
+import { db } from "@/lib/db";
 
 export const metadata: Metadata = { title: "Operador" };
 
-const SECTIONS = [
-  { href: "/operador/caja", emoji: "🧾", title: "Caja", desc: "Arma la venta y genera el QR del ticket", ready: true },
-  { href: "#", emoji: "💡", title: "Validar recibos", desc: "Llega en la Fase 4", ready: false },
-  { href: "#", emoji: "♻️", title: "Validar reciclaje", desc: "Llega en la Fase 5", ready: false },
-];
-
 export default async function OperadorPage() {
   await requireUser(AREA_ROLES.operador);
+  const pendingBills = await db.bill.count({ where: { status: "PENDING" } });
+  const SECTIONS = [
+    { href: "/operador/caja", emoji: "🧾", title: "Caja", desc: "Arma la venta y genera el QR del ticket", ready: true },
+    {
+      href: "/operador/recibos",
+      emoji: "💡",
+      title: "Validar recibos",
+      desc: pendingBills === 1 ? "1 recibo pendiente" : `${pendingBills} recibos pendientes`,
+      ready: true,
+    },
+    { href: "#", emoji: "♻️", title: "Validar reciclaje", desc: "Llega en la Fase 5", ready: false },
+  ];
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">Operador</h1>

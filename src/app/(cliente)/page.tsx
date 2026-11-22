@@ -74,6 +74,9 @@ export default async function InicioPage() {
       <Button nativeButton={false} className="h-12 w-full text-base" render={<Link href="/escanear" />}>
         📷 Escanear QR
       </Button>
+      <Button nativeButton={false} variant="outline" className="h-12 w-full text-base" render={<Link href="/recibos" />}>
+        💡 Subir recibo de luz o agua
+      </Button>
 
       <Card>
         <CardHeader>

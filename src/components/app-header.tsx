@@ -6,7 +6,10 @@ import type { SessionUser } from "@/lib/auth/session";
 const ROLE_LABEL = { CUSTOMER: "Cliente", OPERATOR: "Operador", ADMIN: "Admin" } as const;
 
 export function AppHeader({ user }: { user: SessionUser }) {
-  const links = [{ href: "/", label: "Inicio" }];
+  const links = [
+    { href: "/", label: "Inicio" },
+    { href: "/recibos", label: "Recibos" },
+  ];
   if (user.role === "OPERATOR" || user.role === "ADMIN") links.push({ href: "/operador", label: "Operador" });
   if (user.role === "ADMIN") links.push({ href: "/admin", label: "Admin" });
 

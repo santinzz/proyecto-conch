@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { extractTicketToken, getQrSecret, newNonce, signTicket, ticketUrl, verifyTicket } from "./qr";
+import { binUrl, extractBinCode } from "./qr-token";
 
 const SECRET = "s".repeat(40);
 const NOW = new Date("2026-11-20T18:00:00Z");
@@ -75,4 +76,12 @@ test("QR_SECRET es obligatorio y largo", () => {
   expect(getQrSecret({ QR_SECRET: SECRET })).toBe(SECRET);
   expect(() => getQrSecret({})).toThrow();
   expect(() => getQrSecret({ QR_SECRET: "corto" })).toThrow();
+});
+
+test("QR del contenedor: bin:CODIGO o la URL de /reciclar", () => {
+  expect(extractBinCode("bin:CAMPUS-01")).toBe("CAMPUS-01");
+  expect(extractBinCode(binUrl("https://ecopuntos.test", "CAMPUS-01"))).toBe("CAMPUS-01");
+  expect(extractBinCode("https://ecopuntos.test/escanear?t=abc")).toBeNull();
+  expect(extractBinCode("bin:")).toBeNull();
+  expect(extractBinCode("hola")).toBeNull();
 });

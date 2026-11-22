@@ -17,3 +17,22 @@ export function extractTicketToken(scanned: string): string | null {
     return text.split(".").length === 4 ? text : null;
   }
 }
+
+/** URL que va dentro del QR fijo del contenedor de reciclaje. */
+export function binUrl(baseUrl: string, code: string): string {
+  const url = new URL("/reciclar", baseUrl);
+  url.searchParams.set("bin", code);
+  return url.toString();
+}
+
+/** Código del contenedor: "bin:CAMPUS-01" (SPEC.md) o la URL de /reciclar. null si no es un contenedor. */
+export function extractBinCode(scanned: string): string | null {
+  const text = scanned.trim();
+  if (/^bin:/i.test(text)) return text.slice(4).trim() || null;
+  try {
+    const url = new URL(text);
+    return url.pathname === "/reciclar" ? url.searchParams.get("bin") : null;
+  } catch {
+    return null;
+  }
+}

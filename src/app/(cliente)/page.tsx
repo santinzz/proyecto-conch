@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { formatPoints } from "@/lib/format";
 import { getBalance, getLevel } from "@/lib/points/balance";
+import { userImpact } from "@/lib/impact-stats";
 import { ENTRY_LABELS } from "@/lib/points/labels";
 
 const dateFmt = new Intl.DateTimeFormat("es-MX", {
@@ -18,7 +19,7 @@ const dateFmt = new Intl.DateTimeFormat("es-MX", {
 export default async function InicioPage() {
   // Cada página revisa la sesión por su cuenta (no basta con el layout).
   const user = await requireUser();
-  const [balance, level, entries] = await Promise.all([
+  const [balance, level, entries, impact] = await Promise.all([
     getBalance(user.id),
     getLevel(user.id),
     db.pointEntry.findMany({
@@ -27,7 +28,9 @@ export default async function InicioPage() {
       take: 5,
       select: { id: true, type: true, points: true, createdAt: true },
     }),
+    userImpact(db, user.id),
   ]);
+  const { co2Kg, containers, pieces } = impact.totals;
 
   return (
     <div className="space-y-4">
@@ -70,6 +73,17 @@ export default async function InicioPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Link
+        href="/mi-impacto"
+        className="flex items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 text-sm hover:bg-muted/50"
+      >
+        <span>
+          🌍 <span className="font-semibold">{co2Kg.toLocaleString("es-MX", { maximumFractionDigits: 1 })} kg de CO₂</span>{" "}
+          evitados · {containers} envases · {pieces} piezas
+        </span>
+        <span className="shrink-0 text-muted-foreground">Mi impacto →</span>
+      </Link>
 
       <Button nativeButton={false} className="h-12 w-full text-base" render={<Link href="/escanear" />}>
         📷 Escanear QR

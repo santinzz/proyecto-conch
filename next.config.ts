@@ -18,6 +18,17 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // Encabezados básicos de seguridad para todo el sitio. La cámara solo para este
+        // sitio (escáner de tickets y cupones).
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=()" },
+        ],
+      },
+      {
         source: "/sw.js",
         headers: [
           { key: "Content-Type", value: "application/javascript; charset=utf-8" },

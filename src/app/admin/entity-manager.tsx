@@ -198,7 +198,7 @@ export function EntityManager({
                     <p className="text-xs text-muted-foreground">{item.subtitle}</p>
                   </div>
                   {editing !== item.id && (
-                    <Button variant="outline" className="h-9 shrink-0" onClick={() => setEditing(item.id)}>
+                    <Button variant="outline" className="h-11 shrink-0" onClick={() => setEditing(item.id)}>
                       Editar
                     </Button>
                   )}

@@ -34,7 +34,7 @@ export function ImpactChart({ weeks }: { weeks: ChartWeek[] }) {
             type="button"
             aria-pressed={metric === m.key}
             onClick={() => setMetric(m.key)}
-            className={`min-h-9 rounded-full border px-3 text-sm whitespace-nowrap ${metric === m.key ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+            className={`min-h-11 rounded-full border px-3 text-sm whitespace-nowrap ${metric === m.key ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted"}`}
           >
             {m.tab}
           </button>

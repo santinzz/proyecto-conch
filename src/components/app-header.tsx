@@ -27,7 +27,7 @@ export function AppHeader({ user }: { user: SessionUser }) {
             {user.name} · {ROLE_LABEL[user.role]}
           </span>
           <form action={logoutAction}>
-            <Button type="submit" variant="ghost" size="sm">
+            <Button type="submit" variant="ghost" size="sm" className="h-11">
               Salir
             </Button>
           </form>
@@ -39,7 +39,7 @@ export function AppHeader({ user }: { user: SessionUser }) {
             <Link
               key={l.href}
               href={l.href}
-              className="rounded-full border px-3 py-1 text-sm whitespace-nowrap hover:bg-muted"
+              className="inline-flex min-h-11 items-center rounded-full border px-3 text-sm whitespace-nowrap hover:bg-muted"
             >
               {l.label}
             </Link>

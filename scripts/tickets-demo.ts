@@ -19,6 +19,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import QRCode from "qrcode";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { getQrSecret, newNonce, QR_TTL_SECONDS, signTicket, ticketUrl } from "../src/lib/qr";
+import { binUrl } from "../src/lib/qr-token";
 import { type CreateSaleInput, createSale } from "../src/lib/sales";
 
 const PORT = process.env.PORT ?? "3000";
@@ -168,11 +169,11 @@ async function main() {
     },
     {
       file: "08-contenedor-reciclaje",
-      title: "Contenedor de reciclaje (Fase 5)",
-      description: "QR del contenedor CAMPUS-01. El reciclaje todavía no está implementado.",
-      expected: "Aviso en el escáner de la app: «Los contenedores de reciclaje llegan pronto».",
-      content: "bin:CAMPUS-01",
-      localLink: null,
+      title: "Contenedor de reciclaje",
+      description: "QR fijo del contenedor CAMPUS-01 (el mismo que imprime el operador en «Validar reciclaje»).",
+      expected: "Abre «Reciclar» para registrar piezas; el operador las confirma y se pagan 5 puntos por pieza.",
+      content: binUrl(baseUrl, "CAMPUS-01"),
+      localLink: binUrl(localBase, "CAMPUS-01"),
     },
   );
 
@@ -203,7 +204,7 @@ function esc(text: string) {
 
 function card(t: Ticket, dataUrl: string) {
   const link = t.localLink
-    ? `<a href="${esc(t.localLink)}" target="_blank" rel="noopener">Canjear sin cámara (abre en esta computadora)</a>`
+    ? `<a href="${esc(t.localLink)}" target="_blank" rel="noopener">Abrir sin cámara (en esta computadora)</a>`
     : "";
   return `<article>
   <img src="${dataUrl}" alt="QR: ${esc(t.title)}">

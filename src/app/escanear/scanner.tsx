@@ -2,11 +2,13 @@
 
 import type { Html5Qrcode } from "html5-qrcode";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatPoints } from "@/lib/format";
-import { extractTicketToken } from "@/lib/qr-token";
+import { normalizeCouponCode } from "@/lib/coupon-code";
+import { extractBinCode, extractTicketToken } from "@/lib/qr-token";
 
 type ClaimResult = {
   purchasePoints: number;
@@ -14,6 +16,7 @@ type ClaimResult = {
   containerPoints: number;
   containerLimitReached: boolean;
   totalPoints: number;
+  challenges?: { title: string; reward: number }[];
 };
 
 type State =
@@ -29,6 +32,7 @@ export function Scanner({ initialToken }: { initialToken?: string }) {
   const [state, setState] = useState<State>(initialToken ? { kind: "claiming" } : { kind: "idle" });
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const claimedInitial = useRef(false);
+  const router = useRouter();
 
   const stopCamera = useCallback(async () => {
     const scanner = scannerRef.current;
@@ -55,8 +59,13 @@ export function Scanner({ initialToken }: { initialToken?: string }) {
   const handleScan = useCallback(
     async (text: string) => {
       await stopCamera();
-      if (text.trim().startsWith("bin:")) {
-        setState({ kind: "error", message: "Los contenedores de reciclaje llegan pronto." });
+      const binCode = extractBinCode(text);
+      if (binCode) {
+        router.push(`/reciclar?bin=${encodeURIComponent(binCode)}`);
+        return;
+      }
+      if (normalizeCouponCode(text)) {
+        setState({ kind: "error", message: "Ese es un cupón: muéstraselo a quien atiende el stand." });
         return;
       }
       const token = extractTicketToken(text);
@@ -66,7 +75,7 @@ export function Scanner({ initialToken }: { initialToken?: string }) {
       }
       await claim(token);
     },
-    [claim, stopCamera],
+    [claim, stopCamera, router],
   );
 
   // Ticket que llegó en la URL (cámara normal del teléfono): se reclama una vez
@@ -161,6 +170,11 @@ export function Scanner({ initialToken }: { initialToken?: string }) {
               {state.result.containerLimitReached && (
                 <li>♻️ Gracias por tu envase. Hoy ya sumaste puntos por envase; lo contamos para el impacto.</li>
               )}
+              {state.result.challenges?.map((c) => (
+                <li key={c.title} className="font-medium text-primary">
+                  🏆 ¡Completaste «{c.title}»! +{formatPoints(c.reward)}
+                </li>
+              ))}
             </ul>
             <Button nativeButton={false} className="h-12 w-full text-base" render={<Link href="/" />}>
               Ver mi saldo

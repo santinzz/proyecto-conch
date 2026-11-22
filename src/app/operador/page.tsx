@@ -8,7 +8,10 @@ export const metadata: Metadata = { title: "Operador" };
 
 export default async function OperadorPage() {
   await requireUser(AREA_ROLES.operador);
-  const pendingBills = await db.bill.count({ where: { status: "PENDING" } });
+  const [pendingBills, pendingRecycle] = await Promise.all([
+    db.bill.count({ where: { status: "PENDING" } }),
+    db.recycleClaim.count({ where: { status: "PENDING" } }),
+  ]);
   const SECTIONS = [
     { href: "/operador/caja", emoji: "🧾", title: "Caja", desc: "Arma la venta y genera el QR del ticket", ready: true },
     {
@@ -18,7 +21,14 @@ export default async function OperadorPage() {
       desc: pendingBills === 1 ? "1 recibo pendiente" : `${pendingBills} recibos pendientes`,
       ready: true,
     },
-    { href: "#", emoji: "♻️", title: "Validar reciclaje", desc: "Llega en la Fase 5", ready: false },
+    {
+      href: "/operador/reciclaje",
+      emoji: "♻️",
+      title: "Validar reciclaje",
+      desc: pendingRecycle === 1 ? "1 solicitud pendiente" : `${pendingRecycle} solicitudes pendientes`,
+      ready: true,
+    },
+    { href: "/operador/cupones", emoji: "🎁", title: "Cupones", desc: "Entrega recompensas y marca cupones como usados", ready: true },
   ];
   return (
     <div className="space-y-4">

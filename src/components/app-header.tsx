@@ -9,6 +9,8 @@ export function AppHeader({ user }: { user: SessionUser }) {
   const links = [
     { href: "/", label: "Inicio" },
     { href: "/recibos", label: "Recibos" },
+    { href: "/retos", label: "Retos" },
+    { href: "/canjear", label: "Canjear" },
   ];
   if (user.role === "OPERATOR" || user.role === "ADMIN") links.push({ href: "/operador", label: "Operador" });
   if (user.role === "ADMIN") links.push({ href: "/admin", label: "Admin" });

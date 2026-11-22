@@ -11,7 +11,7 @@ PWA de puntos por consumo y acciones sustentables, hecha para un proyecto escola
 - [x] Fase 3: caja y QR del ticket (113 pruebas). Falta probar la cámara en un celular real, porque necesita HTTPS (Vercel).
 - [x] Fase 4: recibos con OCR (142 pruebas). Falta afinar el lector con recibos reales de CFE y de agua, y aplicar la migración `recibos_fase4` en la rama `production` de Neon antes de publicarla.
 - [x] Fase 5: reciclaje, retos y canjes (167 pruebas). Falta probar con un celular por HTTPS la cámara del operador al escanear cupones, y aplicar la migración `reciclaje_retos_canjes` en la rama `production` de Neon.
-- [ ] Fase 6: impacto, métricas y PWA
+- [x] Fase 6: impacto, métricas y PWA (179 pruebas). Falta probar la instalación en Android y iPhone por HTTPS: el navegador integrado del equipo de desarrollo no deja registrar service workers.
 - [ ] Fase 7: pulido para el piloto
 
 Se trabaja una fase a la vez: primero se presenta un plan corto y se espera el visto bueno.
@@ -88,6 +88,11 @@ Corre Prisma siempre con `bun --bun run prisma …` (los scripts ya lo hacen) pa
 - `src/lib/redemptions.ts`: `redeemReward` (descuenta stock, crea el cupón y cobra con `debitPoints`), `findCoupon` y `markCouponUsed`. Errores `RedemptionError`. `src/lib/coupon-code.ts` normaliza el código y arma el QR (también corre en el navegador).
 - Endpoints de la Fase 5: `POST /api/recycle/claim`, `POST /api/recycle/:id/review`, `GET /api/challenges`, `GET /api/rewards`, `POST /api/redemptions`, `GET /api/redemptions/:code` y `POST /api/redemptions/:code/use`.
 - Pantallas de la Fase 5: `src/app/reciclar` (fuera de `(cliente)`, como `escanear`), `(cliente)/retos`, `(cliente)/canjear`, `operador/reciclaje` (con el QR del contenedor para imprimir) y `operador/cupones` (con `components/qr-reader.tsx`).
+- `src/lib/points/impact-summary.ts`: totales de impacto y desglose por semana (lunes a domingo, hora de CDMX), funciones puras. `src/lib/impact-stats.ts` hace las consultas: `userImpact`, `pilotImpact` (página pública, sin datos personales), `adminMetrics`, `movementsCsv` y `weeklyCsv`. `src/lib/csv.ts` arma el CSV (UTF-8 con BOM para Excel).
+- `src/lib/admin/entities.ts`: esquemas Zod y altas/ediciones del admin para `products`, `rules` (solo se editan), `challenges`, `rewards` y `bins`. Errores `AdminError`.
+- Endpoints de la Fase 6: `GET /api/me`, `GET /api/me/entries` (paginado con `cursor`), `GET /api/public/impact`, `GET /api/admin/metrics`, `GET /api/admin/export.csv?tipo=movimientos|semanas` y `GET|POST /api/admin/:entity`, `PATCH /api/admin/:entity/:id`.
+- Pantallas de la Fase 6: `(cliente)/mi-impacto`, `src/app/impacto` (pública), `admin` (panel) y `admin/productos|reglas|retos|recompensas|contenedores` con el editor genérico `admin/entity-manager.tsx`. Gráfica: `components/impact-chart.tsx` (Recharts) y cifras: `components/impact-tiles.tsx`.
+- PWA: `src/app/manifest.ts`, íconos en `public/icons/`, `public/sw.js` + `public/offline.html` y `components/service-worker.tsx` (registra el service worker solo en producción). Los encabezados de `/sw.js` están en `next.config.ts`.
 - `src/lib/db.ts`: cliente Prisma único.
 - `src/lib/rate-limit.ts`: rate limit en memoria, por instancia.
 - `src/app/(auth)`: login y registro. `src/app/(cliente)`: pantallas del cliente. `src/app/operador` y `src/app/admin`: áreas protegidas.
@@ -134,6 +139,12 @@ Corre Prisma siempre con `bun --bun run prisma …` (los scripts ya lo hacen) pa
 - Reciclaje: `pieces` es lo que dijo el usuario y `confirmedPieces` lo que contó el operador (es lo que se paga). De 1 a 100 piezas por solicitud y máximo 3 solicitudes pendientes por persona. Nadie confirma su propio reciclaje.
 - Retos: solo cuenta lo que pasó entre `startsAt` y `endsAt`. El de envase cuenta todas las veces (también las de 0 puntos); el de reciclaje, todas las piezas aprobadas aunque el límite semanal no las pague. El de reducción usa `Bill.reductionPct`, que se fija al aprobar, y cuenta por la fecha de aprobación (los recibos aprobados antes de la Fase 5 no lo tienen). La insignia es el reto completado.
 - Canjes: el cupón es `ECO-XXXX-XXXX` (sin 0, O, 1 ni I) y su QR lleva `cupon:<código>`. No vence: vale hasta el fin del piloto. El stock se descuenta al canjear. Una donación crea un `Redemption` ya marcado como usado. Nadie marca como usado su propio cupón.
+- Gráficas: una serie a la vez con selector (CO₂, agua, envases, piezas), un solo color, barras delgadas, tooltip y la misma información como tabla. Sin datos se muestra un recuadro vacío, no ejes.
+- Personas participando = con al menos un movimiento; activas = con algún movimiento en la semana actual.
+- El CSV identifica a cada persona con un seudónimo `U-xxxxxxxx` (HMAC del id con `AUTH_SECRET`): el reporte no necesita nombres ni correos. Si cambia `AUTH_SECRET`, cambian los seudónimos.
+- `/impacto` es pública y dinámica (`connection()`): nunca consulta la base durante el build.
+- Admin: nada se borra. Un producto se desactiva, un reto se termina cambiando su fecha final y las reglas solo se editan. Las fechas de los retos se capturan al minuto en la hora del navegador.
+- Service worker mínimo: solo muestra `/offline.html` sin conexión; no guarda en caché páginas ni API para no mostrar saldos o QR viejos.
 - Tickets de prueba: `bun run tickets:demo` crea ventas reales del operador demo en la base local y guarda sus QR en `tickets-demo/` (ignorada en git).
 - `next.config.ts`: `allowedDevOrigins` permite abrir `next dev` desde el celular en la red local; `serverExternalPackages` y `outputFileTracingIncludes` llevan Tesseract.js a la función de `/api/bills`. Esto último no se ha probado en Vercel.
 

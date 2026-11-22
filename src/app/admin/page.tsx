@@ -18,6 +18,8 @@ const SECTIONS = [
   { href: "/admin/retos", emoji: "🏆", title: "Retos" },
   { href: "/admin/recompensas", emoji: "🎁", title: "Recompensas" },
   { href: "/admin/contenedores", emoji: "♻️", title: "Contenedores" },
+  { href: "/admin/usuarios", emoji: "👥", title: "Usuarios y roles" },
+  { href: "/admin/cierre", emoji: "🏁", title: "Cierre del piloto" },
 ];
 
 export default async function AdminPage() {

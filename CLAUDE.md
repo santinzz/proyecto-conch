@@ -10,7 +10,7 @@ PWA de puntos por consumo y acciones sustentables, hecha para un proyecto escola
 - [x] Fase 2: motor de puntos con pruebas (87 pruebas).
 - [x] Fase 3: caja y QR del ticket (113 pruebas). Falta probar la cámara en un celular real, porque necesita HTTPS (Vercel).
 - [x] Fase 4: recibos con OCR (142 pruebas). Falta afinar el lector con recibos reales de CFE y de agua, y aplicar la migración `recibos_fase4` en la rama `production` de Neon antes de publicarla.
-- [ ] Fase 5: reciclaje, retos y canjes
+- [x] Fase 5: reciclaje, retos y canjes (167 pruebas). Falta probar con un celular por HTTPS la cámara del operador al escanear cupones, y aplicar la migración `reciclaje_retos_canjes` en la rama `production` de Neon.
 - [ ] Fase 6: impacto, métricas y PWA
 - [ ] Fase 7: pulido para el piloto
 
@@ -83,6 +83,11 @@ Corre Prisma siempre con `bun --bun run prisma …` (los scripts ya lo hacen) pa
 - `src/lib/ocr.ts`: texto del recibo. Con un PDF usa unpdf; con una foto, Tesseract.js en español (descarga el idioma a la carpeta temporal la primera vez). Si falla devuelve null y el usuario escribe los datos.
 - Endpoints de recibos: `POST /api/bills` (subir, con rate limit), `PATCH /api/bills/:id` (confirmar y enviar), `DELETE /api/bills/:id`, `GET /api/bills/:id/file` (dueño u operador, sin caché), `GET /api/bills?status=` y `POST /api/bills/:id/review` (operador).
 - Pantallas de recibos: `src/app/(cliente)/recibos` (subir, confirmar, estado) y `src/app/operador/recibos` (cola y revisión).
+- `src/lib/points/challenges.ts`: `evaluateChallenges` (paga con `creditChallenge` los retos activos que el usuario ya alcanzó; se llama en la misma transacción después de `claimSale`, `reviewBill` y `reviewRecycleClaim`) y `challengesForUser` (avance e insignias). Las métricas están en `challenge-metrics.ts`: `BRING_CONTAINER_count`, `PURCHASE_count`, `RECYCLE_pieces`, `BILL_count`, `ELECTRICITY_reduction_pct` y `WATER_reduction_pct`.
+- `src/lib/recycle.ts`: `createRecycleClaim` y `reviewRecycleClaim` (el operador confirma las piezas y se acredita con `creditRecycle`). Errores `RecycleError`.
+- `src/lib/redemptions.ts`: `redeemReward` (descuenta stock, crea el cupón y cobra con `debitPoints`), `findCoupon` y `markCouponUsed`. Errores `RedemptionError`. `src/lib/coupon-code.ts` normaliza el código y arma el QR (también corre en el navegador).
+- Endpoints de la Fase 5: `POST /api/recycle/claim`, `POST /api/recycle/:id/review`, `GET /api/challenges`, `GET /api/rewards`, `POST /api/redemptions`, `GET /api/redemptions/:code` y `POST /api/redemptions/:code/use`.
+- Pantallas de la Fase 5: `src/app/reciclar` (fuera de `(cliente)`, como `escanear`), `(cliente)/retos`, `(cliente)/canjear`, `operador/reciclaje` (con el QR del contenedor para imprimir) y `operador/cupones` (con `components/qr-reader.tsx`).
 - `src/lib/db.ts`: cliente Prisma único.
 - `src/lib/rate-limit.ts`: rate limit en memoria, por instancia.
 - `src/app/(auth)`: login y registro. `src/app/(cliente)`: pantallas del cliente. `src/app/operador` y `src/app/admin`: áreas protegidas.
@@ -125,6 +130,10 @@ Corre Prisma siempre con `bun --bun run prisma …` (los scripts ya lo hacen) pa
 - Periodos: de 20 a 100 días, sin terminar en el futuro y sin encimarse con otro recibo pendiente o aprobado del mismo servicio (se toleran 3 días). Se compara contra el recibo APROBADO anterior.
 - Revisión detallada: además de lo que pide SPEC.md, también si el número de servicio o el inicio del periodo no coinciden con lo leído por el OCR.
 - Nadie valida su propio recibo, igual que el operador no canjea sus propias ventas.
+- El QR del contenedor lleva una URL (`/reciclar?bin=CAMPUS-01`) para que también funcione con la cámara normal del teléfono; el escáner de la app sigue aceptando `bin:CAMPUS-01` (SPEC.md).
+- Reciclaje: `pieces` es lo que dijo el usuario y `confirmedPieces` lo que contó el operador (es lo que se paga). De 1 a 100 piezas por solicitud y máximo 3 solicitudes pendientes por persona. Nadie confirma su propio reciclaje.
+- Retos: solo cuenta lo que pasó entre `startsAt` y `endsAt`. El de envase cuenta todas las veces (también las de 0 puntos); el de reciclaje, todas las piezas aprobadas aunque el límite semanal no las pague. El de reducción usa `Bill.reductionPct`, que se fija al aprobar, y cuenta por la fecha de aprobación (los recibos aprobados antes de la Fase 5 no lo tienen). La insignia es el reto completado.
+- Canjes: el cupón es `ECO-XXXX-XXXX` (sin 0, O, 1 ni I) y su QR lleva `cupon:<código>`. No vence: vale hasta el fin del piloto. El stock se descuenta al canjear. Una donación crea un `Redemption` ya marcado como usado. Nadie marca como usado su propio cupón.
 - Tickets de prueba: `bun run tickets:demo` crea ventas reales del operador demo en la base local y guarda sus QR en `tickets-demo/` (ignorada en git).
 - `next.config.ts`: `allowedDevOrigins` permite abrir `next dev` desde el celular en la red local; `serverExternalPackages` y `outputFileTracingIncludes` llevan Tesseract.js a la función de `/api/bills`. Esto último no se ha probado en Vercel.
 

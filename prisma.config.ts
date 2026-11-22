@@ -13,5 +13,8 @@ export default defineConfig({
     // (p. ej. PGlite local), se usa DATABASE_URL.
     // `prisma generate` no necesita base de datos, así que aquí no se exige.
     url: process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL ?? "",
+    // Solo en local con PGlite (bun run db:local): base vacía para `prisma migrate dev`.
+    // Con Neon no hace falta: Prisma crea y borra su propia base sombra.
+    shadowDatabaseUrl: process.env.SHADOW_DATABASE_URL,
   },
 });

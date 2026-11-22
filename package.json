@@ -7,7 +7,7 @@
     "build": "bun --bun run prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "db:local": "pglite-server --db=./.pglite --port=5433 --max-connections=10",
+    "db:local": "bun scripts/db-local.ts",
     "postinstall": "bun --bun run prisma generate",
     "db:migrate": "bun --bun run prisma migrate dev",
     "db:deploy": "bun --bun run prisma migrate deploy",

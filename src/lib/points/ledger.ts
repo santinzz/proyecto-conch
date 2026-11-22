@@ -17,6 +17,7 @@ import { levelFor, levelWindowStart } from "./levels";
 import { applyLimit, periodRange } from "./limits";
 import { type PurchaseItem, purchasePoints } from "./purchase";
 import { type LimitPeriod, RULE_KEYS, type RuleSet } from "./rules";
+import { challengeSourceId } from "./challenge-metrics";
 
 export type Tx = Prisma.TransactionClient;
 
@@ -237,6 +238,27 @@ export async function creditBillReduction(
     now,
   });
   return { entry, ...result };
+}
+
+/**
+ * Reto completado: paga `points` una sola vez por usuario y reto
+ * (sourceId = "challengeId:userId", protegido por @@unique([type, sourceId])).
+ */
+export async function creditChallenge(
+  tx: Tx,
+  input: { userId: string; challengeId: string; points: number; now?: Date },
+) {
+  assertInTransaction(tx);
+  if (!Number.isInteger(input.points) || input.points < 0) throw new Error("Puntos del reto no válidos");
+  const now = input.now ?? new Date();
+  await lockUser(tx, input.userId);
+  return insertEntry(tx, {
+    userId: input.userId,
+    type: EntryType.CHALLENGE,
+    points: input.points,
+    sourceId: challengeSourceId(input.challengeId, input.userId),
+    now,
+  });
 }
 
 // ---------------------------------------------------------------- cargos

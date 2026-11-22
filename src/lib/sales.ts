@@ -2,6 +2,7 @@
 // lo escanea y se le acreditan los puntos UNA sola vez.
 import { z } from "zod";
 import { ecoScore, type EcoScore } from "@/lib/points/eco-score";
+import { evaluateChallenges } from "@/lib/points/challenges";
 import { creditBringContainer, creditPurchase, loadRules, type Tx } from "@/lib/points/ledger";
 import { purchasePoints } from "@/lib/points/purchase";
 import { newNonce, QR_TTL_SECONDS, signTicket, verifyTicket } from "@/lib/qr";
@@ -130,6 +131,8 @@ export async function claimSale(tx: Tx, input: { userId: string; token: string; 
     ? await creditBringContainer(tx, { userId: input.userId, saleId: sale.id, now })
     : null;
 
+  const challenges = await evaluateChallenges(tx, { userId: input.userId, now });
+
   const purchasePts = purchase?.total ?? 0;
   const containerPts = container?.entry.points ?? 0;
   return {
@@ -140,5 +143,6 @@ export async function claimSale(tx: Tx, input: { userId: string; token: string; 
     containerPoints: containerPts,
     containerLimitReached: container?.limitReached ?? false,
     totalPoints: purchasePts + containerPts,
+    challenges: challenges.map((c) => ({ title: c.title, reward: c.reward })),
   };
 }

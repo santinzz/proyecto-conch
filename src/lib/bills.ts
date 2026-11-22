@@ -16,6 +16,7 @@ import type { BillKind } from "@/generated/prisma/enums";
 import { type BillMimeType, sha256Hex } from "@/lib/bills/file";
 import { MAX_PERIOD_DAYS, MIN_PERIOD_DAYS, type ParsedBill } from "@/lib/bills/parse";
 import { type BillReading, billReduction, needsDetailedReview } from "@/lib/points/bill";
+import { evaluateChallenges } from "@/lib/points/challenges";
 import { creditBillReduction, loadRules, type Tx } from "@/lib/points/ledger";
 
 export type BillErrorCode =
@@ -366,8 +367,12 @@ export async function reviewBill(
     feSen: input.feSen,
     now,
   });
+  // La reducción queda en el recibo para los retos de "reduce X% tu consumo".
+  await tx.bill.update({ where: { id: bill.id }, data: { reductionPct: credit.baseline ? null : credit.reductionPct } });
+  const challenges = await evaluateChallenges(tx, { userId: bill.userId, now });
   return {
     status: "APPROVED" as const,
+    challenges: challenges.map((c) => ({ title: c.title, reward: c.reward })),
     points: credit.entry.points,
     baseline: credit.baseline,
     reductionPct: credit.reductionPct,

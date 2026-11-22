@@ -50,7 +50,8 @@ model User {
   createdAt    DateTime @default(now())
 
   entries        PointEntry[]
-  bills          Bill[]
+  bills          Bill[]         @relation("BillOwner")
+  billsReviewed  Bill[]         @relation("BillReviewer")
   services       ServiceAccount[]
   salesOperated  Sale[]         @relation("SaleOperator")
   salesClaimed   Sale[]         @relation("SaleClaimedBy")
@@ -98,25 +99,56 @@ model Sale {
   createdAt        DateTime  @default(now())
 }
 
-model Bill {
-  id             String         @id @default(cuid())
-  userId         String
-  user           User           @relation(fields: [userId], references: [id])
-  kind           BillKind
-  serviceNumber  String
-  periodStart    DateTime
-  periodEnd      DateTime
-  consumption    Float // kWh o m3, confirmado por el usuario
-  ocrConsumption Float?
-  ocrConfidence  Float?
-  fileUrl        String
-  fileHash       String         @unique
-  status         EvidenceStatus @default(PENDING)
-  reviewNote     String?
-  createdAt      DateTime       @default(now())
+// Estado de un recibo. DRAFT solo existe aquí: el archivo ya se subió y el OCR
+// ya lo leyó, pero el usuario todavía no confirma los datos.
+enum BillStatus {
+  DRAFT // subido; falta que el usuario confirme los datos
+  PENDING // enviado; espera al operador
+  APPROVED
+  REJECTED // el usuario puede corregirlo y reenviarlo, o borrarlo
+}
 
-  @@unique([kind, serviceNumber, periodStart])
+model Bill {
+  id               String     @id @default(cuid())
+  userId           String
+  user             User       @relation("BillOwner", fields: [userId], references: [id])
+  kind             BillKind
+  // Datos confirmados por el usuario (vacíos mientras es borrador).
+  serviceNumber    String?
+  periodStart      DateTime?
+  periodEnd        DateTime?
+  consumption      Float? // kWh o m³
+  // Lo que leyó el OCR: sirve para prellenar y para comparar con lo confirmado.
+  ocrServiceNumber String?
+  ocrPeriodStart   DateTime?
+  ocrPeriodEnd     DateTime?
+  ocrConsumption   Float?
+  ocrConfidence    Float? // 0 a 1
+  fileHash         String     @unique // SHA-256: el mismo archivo no se sube dos veces
+  file             BillFile?
+  // Sin OCR, OCR distinto en más de 10% o reducción mayor a 50% (SPEC.md).
+  detailedReview   Boolean    @default(false)
+  status           BillStatus @default(DRAFT)
+  reviewNote       String?
+  reviewedById     String?
+  reviewedBy       User?      @relation("BillReviewer", fields: [reviewedById], references: [id])
+  submittedAt      DateTime?
+  reviewedAt       DateTime?
+  createdAt        DateTime   @default(now())
+
+  @@unique([kind, serviceNumber, periodStart]) // no se paga dos veces el mismo periodo
   @@index([status])
+  @@index([userId])
+}
+
+// Foto o PDF del recibo, aparte para no cargar los bytes al listar recibos.
+// Solo lo ven el dueño y los operadores; se borra al terminar el piloto.
+model BillFile {
+  billId   String @id
+  bill     Bill   @relation(fields: [billId], references: [id], onDelete: Cascade)
+  mimeType String
+  size     Int
+  data     Bytes
 }
 
 model RecycleBin {

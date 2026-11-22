@@ -67,6 +67,16 @@ export function RegisterForm({ next }: { next?: string }) {
             />
             <p className="text-xs text-muted-foreground">Mínimo 8 caracteres.</p>
           </div>
+          <label htmlFor="acceptPrivacy" className="flex items-start gap-3 text-sm">
+            <input id="acceptPrivacy" name="acceptPrivacy" type="checkbox" required className="mt-0.5 size-5 shrink-0" />
+            <span>
+              Leí y acepto el{" "}
+              <Link href="/privacidad" target="_blank" className="font-medium text-primary underline-offset-4 hover:underline">
+                aviso de privacidad
+              </Link>
+              .
+            </span>
+          </label>
           {error && (
             <p role="alert" className="text-sm text-destructive">
               {error}

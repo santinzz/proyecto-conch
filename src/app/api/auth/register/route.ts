@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   const passwordHash = await bcrypt.hash(password, 10);
   try {
     const user = await db.user.create({
-      data: { name, email, passwordHash }, // role queda en CUSTOMER por defecto
+      data: { name, email, passwordHash, privacyAcceptedAt: new Date() }, // role queda en CUSTOMER por defecto
       select: { id: true, name: true, email: true },
     });
     return NextResponse.json({ user }, { status: 201 });

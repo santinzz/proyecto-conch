@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -113,7 +114,10 @@ export function UploadForm() {
 
           <p className="rounded-lg bg-muted p-3 text-xs text-muted-foreground">
             🔒 Tu recibo solo lo ven tú y el equipo que valida. Guardamos el número de servicio, el periodo y el
-            consumo; la foto o el PDF se borran al terminar el piloto.
+            consumo; la foto o el PDF se borran al terminar el piloto.{" "}
+            <Link href="/privacidad" className="underline underline-offset-2">
+              Aviso de privacidad
+            </Link>
           </p>
 
           {error && (

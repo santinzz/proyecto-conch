@@ -6,6 +6,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <p className="mt-1 text-sm text-muted-foreground">Puntos por cuidar el planeta</p>
       </div>
       <div className="w-full max-w-sm">{children}</div>
+      <a href="/privacidad" className="mt-4 inline-flex min-h-11 items-center text-xs text-muted-foreground hover:underline">
+        Aviso de privacidad
+      </a>
     </main>
   );
 }

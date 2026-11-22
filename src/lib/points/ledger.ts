@@ -261,6 +261,32 @@ export async function creditChallenge(
   });
 }
 
+/**
+ * Ajuste manual de un admin (positivo o negativo). La evidencia es un Adjustment
+ * con el motivo. Un ajuste negativo nunca deja saldo negativo.
+ */
+export async function adjustPoints(
+  tx: Tx,
+  input: { userId: string; adjustmentId: string; points: number; now?: Date },
+) {
+  assertInTransaction(tx);
+  if (!Number.isInteger(input.points) || input.points === 0) throw new Error("Cantidad de puntos no válida");
+  const now = input.now ?? new Date();
+  await lockUser(tx, input.userId);
+  const balance = await balanceOf(tx, input.userId);
+  if (balance + input.points < 0) {
+    throw new PointsError("INSUFFICIENT_BALANCE", `El saldo es de ${balance} puntos: no se puede quitar más`);
+  }
+  const entry = await insertEntry(tx, {
+    userId: input.userId,
+    type: EntryType.ADJUSTMENT,
+    points: input.points,
+    sourceId: input.adjustmentId,
+    now,
+  });
+  return { entry, balance: balance + input.points };
+}
+
 // ---------------------------------------------------------------- cargos
 
 /** Canje o donación: crea un PointEntry negativo. Nunca deja saldo negativo. */

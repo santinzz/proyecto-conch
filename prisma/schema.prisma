@@ -48,6 +48,8 @@ model User {
   passwordHash String
   role         Role     @default(CUSTOMER)
   createdAt    DateTime @default(now())
+  // Cuándo aceptó el aviso de privacidad al registrarse (null en cuentas creadas por el seed).
+  privacyAcceptedAt DateTime?
 
   entries        PointEntry[]
   bills          Bill[]         @relation("BillOwner")
@@ -59,6 +61,8 @@ model User {
   recyclesReviewed RecycleClaim[] @relation("RecycleReviewer")
   redemptions    Redemption[]   @relation("RedemptionOwner")
   couponsUsed    Redemption[]   @relation("CouponUsedBy")
+  adjustments    Adjustment[]   @relation("AdjustmentTarget")
+  adjustmentsMade Adjustment[]  @relation("AdjustmentAdmin")
 }
 
 // Un número de servicio CFE o de agua pertenece a una sola cuenta.
@@ -236,6 +240,21 @@ model Redemption {
   usedById  String?
   usedBy    User?     @relation("CouponUsedBy", fields: [usedById], references: [id])
   createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// Ajuste manual de puntos hecho por un admin (corrige errores). Es la evidencia del
+// PointEntry de tipo ADJUSTMENT (sourceId = Adjustment.id).
+model Adjustment {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("AdjustmentTarget", fields: [userId], references: [id])
+  adminId   String
+  admin     User     @relation("AdjustmentAdmin", fields: [adminId], references: [id])
+  points    Int // positivo o negativo
+  reason    String
+  createdAt DateTime @default(now())
 
   @@index([userId])
 }

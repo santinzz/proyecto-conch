@@ -11,7 +11,7 @@ export function createTestDb() {
 /** Deja la base vacía con las reglas iniciales de SPEC.md. */
 export async function resetDb(db: PrismaClient) {
   await db.$executeRawUnsafe(
-    `TRUNCATE "PointEntry", "Sale", "Product", "Redemption", "Reward", "RecycleClaim", "RecycleBin", "Challenge", "Bill", "ServiceAccount", "User", "Rule" CASCADE`,
+    `TRUNCATE "PointEntry", "Sale", "Product", "Redemption", "Reward", "Adjustment", "RecycleClaim", "RecycleBin", "Challenge", "Bill", "ServiceAccount", "User", "Rule" CASCADE`,
   );
   await db.rule.createMany({ data: Object.entries(SPEC_RULES).map(([key, r]) => ({ key, ...r })) });
 }

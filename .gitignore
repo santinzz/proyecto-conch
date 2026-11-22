@@ -54,3 +54,6 @@ next-env.d.ts
 
 # neon
 /.neon
+
+# tickets de prueba generados (bun run tickets:demo)
+/tickets-demo/

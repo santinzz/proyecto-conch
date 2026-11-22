@@ -1,0 +1,232 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "1. Base de datos local (PGlite)",
+      "type": "shell",
+      "command": "bun",
+      "args": [
+        "run",
+        "db:local"
+      ],
+      "problemMatcher": {
+        "owner": "ecopuntos",
+        "pattern": {
+          "regexp": "^__nunca__$",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOrLimit": true,
+          "beginsPattern": "Iniciando base local",
+          "endsPattern": "Base local lista"
+        }
+      },
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always"
+      },
+      "isBackground": true
+    },
+    {
+      "label": "2. Migraciones",
+      "type": "shell",
+      "command": "bun",
+      "args": [
+        "run",
+        "db:deploy"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "3. Datos demo (seed)",
+      "type": "shell",
+      "command": "bun",
+      "args": [
+        "run",
+        "db:seed"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "4. Servidor (next dev)",
+      "type": "shell",
+      "command": "bun",
+      "args": [
+        "run",
+        "dev"
+      ],
+      "problemMatcher": {
+        "owner": "ecopuntos",
+        "pattern": {
+          "regexp": "^__nunca__$",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOrLimit": true,
+          "beginsPattern": "Next\\.js",
+          "endsPattern": "Ready in"
+        }
+      },
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always"
+      },
+      "isBackground": true
+    },
+    {
+      "label": "EcoPuntos: inicializar todo",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "1. Base de datos local (PGlite)",
+        "2. Migraciones",
+        "3. Datos demo (seed)",
+        "4. Servidor (next dev)"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "EcoPuntos: arrancar (base + servidor)",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "1. Base de datos local (PGlite)",
+        "4. Servidor (next dev)"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Reiniciar base local (borra los datos locales)",
+      "type": "shell",
+      "command": "bun",
+      "args": [
+        "--bun",
+        "run",
+        "prisma",
+        "migrate",
+        "reset",
+        "--force"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "Generar tickets demo",
+      "type": "shell",
+      "command": "bun",
+      "args": [
+        "run",
+        "tickets:demo"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "Pruebas (vitest)",
+      "type": "shell",
+      "command": "bun",
+      "args": [
+        "run",
+        "test"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "Revisar tipos (tsc)",
+      "type": "shell",
+      "command": "bun",
+      "args": [
+        "x",
+        "tsc",
+        "--noEmit"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "Lint (eslint)",
+      "type": "shell",
+      "command": "bun",
+      "args": [
+        "run",
+        "lint"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "0. Verificar todo (pruebas, tipos y lint)",
+      "detail": "Corre pruebas, tipos y lint; el resultado queda en .next/verificacion.log",
+      "type": "shell",
+      "command": "mkdir -p .next && (bun run test && echo '### PRUEBAS OK' || echo '### PRUEBAS FALLARON'; bun x tsc --noEmit && echo '### TIPOS OK' || echo '### TIPOS FALLARON'; bun run lint && echo '### LINT OK' || echo '### LINT FALLO'; echo '### TERMINADO') 2>&1 | tee .next/verificacion.log",
+      "options": {
+        "env": {
+          "NO_COLOR": "1",
+          "FORCE_COLOR": "0"
+        }
+      },
+      "windows": {
+        "command": "(if not exist .next mkdir .next) & (bun run test && echo ### PRUEBAS OK || echo ### PRUEBAS FALLARON) > .next\\verificacion.log 2>&1 & (bun x tsc --noEmit && echo ### TIPOS OK || echo ### TIPOS FALLARON) >> .next\\verificacion.log 2>&1 & (bun run lint && echo ### LINT OK || echo ### LINT FALLO) >> .next\\verificacion.log 2>&1 & echo ### TERMINADO >> .next\\verificacion.log & type .next\\verificacion.log",
+        "options": {
+          "shell": {
+            "executable": "cmd.exe",
+            "args": [
+              "/d",
+              "/c"
+            ]
+          },
+          "env": {
+            "NO_COLOR": "1",
+            "FORCE_COLOR": "0"
+          }
+        }
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "Migración nueva (prisma migrate dev)",
+      "type": "shell",
+      "command": "bun",
+      "args": [
+        "run",
+        "db:migrate"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "focus": true
+      }
+    }
+  ]
+}

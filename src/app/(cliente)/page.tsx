@@ -94,7 +94,12 @@ export default async function InicioPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Últimos movimientos</CardTitle>
+          <CardTitle className="flex items-center justify-between text-base">
+            Últimos movimientos
+            <Link href="/movimientos" className="inline-flex min-h-11 items-center text-sm font-normal text-primary hover:underline">
+              Ver todos
+            </Link>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {entries.length === 0 ? (

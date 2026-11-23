@@ -32,6 +32,16 @@ Todas las fases de SPEC.md están hechas; [PILOTO.md](PILOTO.md) explica cómo p
 - Auth.js v5 (`next-auth@5 beta`) con correo y contraseña, sesiones JWT y bcryptjs.
 - Zod 4 para validar entradas y Vitest para las reglas de negocio.
 
+## Diseño
+
+Dirección "tarjeta de sellos del tianguis": la tarjeta de lealtad con sellos y el ticket de papel del puesto.
+- **Colores** (tokens en `src/app/globals.css`): Cal `#F2F5F1` (fondo), Tinta de nopal `#17322A` (texto), Nopal `#2F6B45` (acciones), Cielo `#3A7CA5` (agua), Grava `#D9DED8` (bordes) y Cempasúchil `#F0A202` (`bg-points`).
+  - El cempasúchil es **solo para los puntos**: tarjeta del saldo y sellos. Siempre va como fondo con texto en tinta (`text-points-ink`), porque como color de texto no tiene contraste suficiente.
+  - Gráficas: `--chart-1` CO₂ y luz, `--chart-2` agua, `--chart-3` envases y `--chart-4` reciclaje.
+- **Tipografía**: Bricolage Grotesque para títulos y números (`font-heading`; `h1`, `h2` y `h3` la usan solos) y Lexend para el texto. Precios, saldos y cifras van en `font-heading tabular-nums`. Se descartó Atkinson Hyperlegible porque dibuja el cero con diagonal ("$1Ø").
+- **Lo memorable** está en un solo lugar: la tarjeta del saldo con el sello del nivel (`LevelStamp`, que se estampa una vez al subir de nivel y respeta "reducir movimiento") y el ticket QR de papel perforado (clase `.ticket`). Lo demás se mantiene sobrio.
+- **Reglas**: listas con separadores en vez de una tarjeta por renglón; pestañas subrayadas (`AppNav`); sin etiquetas en mayúsculas, sin "→" en botones o enlaces y sin "A · B" en metadatos; radio de borde chico (`--radius: 0.375rem`).
+
 ## Comandos
 
 ```bash

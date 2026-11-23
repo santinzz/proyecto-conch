@@ -18,7 +18,7 @@ export default async function CajaPage() {
         className="flex min-h-11 items-center justify-between rounded-xl border px-4 text-sm hover:bg-muted/50"
       >
         <span>🎁 ¿Te enseñan un cupón? Entrégalo aquí</span>
-        <span className="text-muted-foreground">Cupones →</span>
+        <span className="text-muted-foreground">Cupones</span>
       </Link>
       <CashRegister
         products={products.map((p) => ({ id: p.id, name: p.name, priceCents: p.priceCents, ecoScore: ecoScore(p) }))}

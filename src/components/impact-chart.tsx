@@ -6,10 +6,10 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 export type ChartWeek = { label: string; co2Kg: number; liters: number; containers: number; pieces: number };
 
 const METRICS = [
-  { key: "co2Kg", tab: "CO₂", title: "kg de CO₂ evitados por semana", unit: "kg de CO₂" },
-  { key: "liters", tab: "Agua", title: "Litros de agua ahorrados por semana", unit: "litros" },
-  { key: "containers", tab: "Envases", title: "Envases evitados por semana", unit: "envases" },
-  { key: "pieces", tab: "Reciclaje", title: "Piezas recicladas por semana", unit: "piezas" },
+  { key: "co2Kg", tab: "CO₂", title: "kg de CO₂ evitados por semana", unit: "kg de CO₂", color: "var(--chart-1)" },
+  { key: "liters", tab: "Agua", title: "Litros de agua ahorrados por semana", unit: "litros", color: "var(--chart-2)" },
+  { key: "containers", tab: "Envases", title: "Envases evitados por semana", unit: "envases", color: "var(--chart-3)" },
+  { key: "pieces", tab: "Reciclaje", title: "Piezas recicladas por semana", unit: "piezas", color: "var(--chart-4)" },
 ] as const;
 type MetricKey = (typeof METRICS)[number]["key"];
 
@@ -27,27 +27,27 @@ export function ImpactChart({ weeks }: { weeks: ChartWeek[] }) {
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-1 overflow-x-auto" role="group" aria-label="Qué mostrar en la gráfica">
+      <div className="flex gap-4 overflow-x-auto border-b" role="group" aria-label="Qué mostrar en la gráfica">
         {METRICS.map((m) => (
           <button
             key={m.key}
             type="button"
             aria-pressed={metric === m.key}
             onClick={() => setMetric(m.key)}
-            className={`min-h-11 rounded-full border px-3 text-sm whitespace-nowrap ${metric === m.key ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+            className={`-mb-px min-h-11 border-b-2 text-sm whitespace-nowrap transition-colors ${metric === m.key ? "border-primary font-bold text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
           >
             {m.tab}
           </button>
         ))}
       </div>
 
-      <p className="text-sm font-medium">{current.title}</p>
+      <p className="font-heading text-base font-bold">{current.title}</p>
       {empty ? (
         <p className="grid h-56 place-items-center rounded-lg border border-dashed text-sm text-muted-foreground">
           Aún no hay datos en estas semanas
         </p>
       ) : (
-      <div className="h-56 text-primary">
+      <div className="h-56" style={{ color: current.color }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={weeks} margin={{ top: 8, right: 4, bottom: 0, left: 0 }}>
             <CartesianGrid vertical={false} stroke="var(--border)" />

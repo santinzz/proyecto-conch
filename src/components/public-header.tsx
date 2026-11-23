@@ -8,8 +8,8 @@ export async function PublicHeader() {
   return (
     <header className="border-b">
       <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-2">
-        <Link href="/" className="font-bold text-primary">
-          🌱 EcoPuntos
+        <Link href="/" className="font-heading text-xl font-extrabold tracking-tight text-primary">
+          EcoPuntos
         </Link>
         <Link
           href={signedIn ? "/" : "/login"}

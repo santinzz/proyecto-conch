@@ -4,7 +4,6 @@ import QRCode from "qrcode";
 import { useEffect, useMemo, useState } from "react";
 import { EcoBadge } from "@/components/eco-badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { formatMXN, formatPoints } from "@/lib/format";
 import type { EcoScore } from "@/lib/points/eco-score";
@@ -108,7 +107,7 @@ export function CashRegister({ products }: { products: Product[] }) {
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{p.name}</p>
                   <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                    {formatMXN(p.priceCents)} <EcoBadge score={p.ecoScore} />
+                    <span className="font-heading tabular-nums">{formatMXN(p.priceCents)}</span> <EcoBadge score={p.ecoScore} />
                   </p>
                 </div>
                 <div className="flex items-center gap-1">
@@ -151,7 +150,7 @@ export function CashRegister({ products }: { products: Product[] }) {
               <p className="text-xs text-muted-foreground">
                 {itemCount} {itemCount === 1 ? "producto" : "productos"}
               </p>
-              <p className="text-xl font-bold tabular-nums">{formatMXN(totalCents)}</p>
+              <p className="font-heading text-2xl font-bold tabular-nums">{formatMXN(totalCents)}</p>
             </div>
             <Button className="h-12 px-6 text-base" disabled={!canGenerate || pending} onClick={generate}>
               {pending ? "Generando…" : "Generar QR"}
@@ -208,50 +207,49 @@ function TicketView({
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">Ticket</h1>
-      <Card>
-        <CardContent className="space-y-4 text-center">
-          {status.claimed ? (
-            <div className="space-y-2 py-10">
-              <p className="text-6xl">✅</p>
-              <p className="text-xl font-semibold">¡Escaneado{status.claimedBy ? ` por ${status.claimedBy}` : ""}!</p>
-              <p className="text-sm text-muted-foreground">Los puntos ya están en su cuenta.</p>
-            </div>
-          ) : expired ? (
-            <div className="space-y-2 py-10">
-              <p className="text-6xl">⌛</p>
-              <p className="text-xl font-semibold">El QR venció</p>
-              <p className="text-sm text-muted-foreground">Genera uno nuevo con la misma venta.</p>
-            </div>
-          ) : (
-            <>
-              <p className="text-sm text-muted-foreground">Pide al cliente que lo escanee desde EcoPuntos</p>
-              {qrImage ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={qrImage} alt="Código QR del ticket" className="mx-auto aspect-square w-full max-w-xs rounded-lg" />
-              ) : (
-                <div className="mx-auto aspect-square w-full max-w-xs animate-pulse rounded-lg bg-muted" />
-              )}
-              <p className="text-sm" aria-live="polite">
-                Vence en <span className="font-mono font-semibold">{mm}:{ss}</span>
-              </p>
-            </>
-          )}
-          <div className="grid grid-cols-2 gap-2 border-t pt-4 text-sm">
-            <div>
-              <p className="text-muted-foreground">Total</p>
-              <p className="text-lg font-bold">{formatMXN(ticket.totalCents)}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Puntos base</p>
-              <p className="text-lg font-bold">
-                {formatPoints(ticket.basePoints)}
-                {ticket.broughtContainer ? " + ♻️" : ""}
-              </p>
-            </div>
+      <h1 className="text-2xl font-bold">Ticket</h1>
+      {/* Ticket de papel del stand: borde perforado (clase .ticket en globals.css).
+          La sombra va en el contenedor porque la máscara recortaría la del ticket. */}
+      <div className="drop-shadow-[0_1px_2px_rgb(23_50_42/0.18)]">
+      <div className="ticket bg-white px-5 py-8 text-center text-foreground">
+        {status.claimed ? (
+          <div className="space-y-2 py-10">
+            <p className="font-heading text-3xl font-extrabold text-primary">Escaneado</p>
+            <p className="text-lg font-bold">{status.claimedBy ? `Lo canjeó ${status.claimedBy}.` : "Ya se canjeó."}</p>
+            <p className="text-sm text-muted-foreground">Los puntos ya están en su cuenta.</p>
           </div>
-        </CardContent>
-      </Card>
+        ) : expired ? (
+          <div className="space-y-2 py-10">
+            <p className="font-heading text-3xl font-extrabold">El QR venció</p>
+            <p className="text-sm text-muted-foreground">Genera uno nuevo con la misma venta.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">Pide al cliente que lo escanee desde EcoPuntos</p>
+            {qrImage ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={qrImage} alt="Código QR del ticket" className="mx-auto aspect-square w-full max-w-xs" />
+            ) : (
+              <div className="mx-auto aspect-square w-full max-w-xs animate-pulse bg-muted" />
+            )}
+            <p className="text-sm" aria-live="polite">
+              Vence en <span className="font-heading text-base font-bold tabular-nums">{mm}:{ss}</span>
+            </p>
+          </div>
+        )}
+        <div className="mt-5 grid grid-cols-2 gap-2 border-t-2 border-dashed border-border pt-4 text-sm">
+          <div>
+            <p className="text-muted-foreground">Total</p>
+            <p className="font-heading text-2xl font-bold tabular-nums">{formatMXN(ticket.totalCents)}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Puntos base</p>
+            <p className="font-heading text-2xl font-bold tabular-nums">{formatPoints(ticket.basePoints)}</p>
+            {ticket.broughtContainer && <p className="text-xs text-muted-foreground">más el envase</p>}
+          </div>
+        </div>
+      </div>
+      </div>
       {expired && (
         <Button className="h-12 w-full text-base" onClick={onRegenerate} disabled={regenerating}>
           {regenerating ? "Generando…" : "Generar QR de nuevo"}

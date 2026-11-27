@@ -53,6 +53,7 @@ bun run db:deploy      # aplicar migraciones en producción (Neon)
 bun run db:studio      # explorar la base de datos
 bun run dev            # servidor en http://localhost:3000
 bun run tickets:demo   # QR de tickets de prueba en tickets-demo/ (solo con la base local)
+bun run demo:cuentas   # solo las cuentas ficticias con historial (Enrique y Emilio)
 bun run test           # Vitest
 bun run lint
 bunx tsc --noEmit
@@ -173,4 +174,6 @@ Cuentas ficticias con historial (cliente, misma contraseña), creadas por `prism
 - `enrique@ecopuntos.test` (Enrique de Leon Lopez): ~2 meses de uso, nivel Brote. Compras, envases, reciclaje, dos recibos de luz, un reto, un cupón usado y una donación.
 - `emilio@ecopuntos.test` (Emilio de Hoyos Flores): ~5.5 meses de uso constante, nivel Árbol (el más alto). Compra cada 4 días con su envase, 20 piezas de reciclaje cada semana, recibos de luz y agua con reducciones, cuatro retos y varios canjes y donaciones.
 
-No las siembres en la base de producción: inflarían las métricas reales del piloto.
+Las cuentas `@ecopuntos.test` no cuentan en las métricas del piloto (`/impacto`, panel del admin y CSV: `DEMO_EMAIL_DOMAIN` en `src/lib/impact-stats.ts`); su propio "Mi impacto" sí se ve completo.
+
+Para cargar solo estas dos cuentas en otra base (por ejemplo producción) sin tocar a los demás usuarios ni sus contraseñas: `bun run demo:cuentas` con `DATABASE_URL_UNPOOLED` de esa base y `DEMO_ACCOUNTS_PASSWORD` (`scripts/demo-cuentas.ts`). Necesita que ya estén los productos, recompensas y el contenedor del seed. Es idempotente.

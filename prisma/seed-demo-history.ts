@@ -10,25 +10,16 @@
 // de 200 y nivel por puntos ganados en los últimos 180 días.
 //
 // Es idempotente: una cuenta que ya tiene movimientos no se toca.
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
+import bcrypt from "bcryptjs";
 import { BillKind, EntryType, EvidenceStatus, type PrismaClient, Role } from "../src/generated/prisma/client";
 import { billReduction } from "../src/lib/points/bill";
-import { ecoScore, type EcoScore } from "../src/lib/points/eco-score";
+import { type EcoCriteria, ecoScore, type EcoScore } from "../src/lib/points/eco-score";
 import { billImpact } from "../src/lib/points/impact";
 import { levelFor } from "../src/lib/points/levels";
 
 const DAY = 24 * 60 * 60 * 1000;
 const RATE: Record<EcoScore, number> = { A: 3, B: 2, C: 1 };
-
-type ProductRow = {
-  id: string;
-  name: string;
-  priceCents: number;
-  bulk: boolean;
-  local: boolean;
-  plasticFree: boolean;
-  certified: boolean;
-};
 
 /** [días atrás, hora, minuto] */
 type When = [number, number, number];
@@ -232,17 +223,47 @@ export const DEMO_PROFILES = [ENRIQUE, EMILIO];
 
 // ------------------------------------------------------------------- motor
 
-export async function seedDemoHistories(
-  db: PrismaClient,
-  opts: { passwordHash: string; products: ProductRow[]; feSen: number; now: Date },
-) {
-  for (const profile of DEMO_PROFILES) await seedProfile(db, profile, opts);
+type Opts = { passwordHash: string; feSen: number; now: Date };
+
+/**
+ * Crea las cuentas con historial. Necesita en la base los productos, las
+ * recompensas y el contenedor CAMPUS-01 del seed (precios y Eco Score salen de la
+ * base). Si no existe el operador demo, crea uno sin contraseña utilizable para
+ * que nadie real aparezca como revisor de datos ficticios.
+ */
+export async function seedDemoHistories(db: PrismaClient, opts: Opts) {
+  const productIds = [...new Set(DEMO_PROFILES.flatMap((p) => p.sales.flatMap(([, , lines]) => lines.map(([id]) => id))))];
+  const products = await db.product.findMany({ where: { id: { in: productIds } } });
+  const missingProducts = productIds.filter((id) => !products.some((pr) => pr.id === id));
+  const rewardIds = [...new Set(DEMO_PROFILES.flatMap((p) => p.redemptions.map((r) => r.rewardId)))];
+  const rewards = await db.reward.findMany({ where: { id: { in: rewardIds } }, select: { id: true } });
+  const missingRewards = rewardIds.filter((id) => !rewards.some((r) => r.id === id));
+  if (missingProducts.length || missingRewards.length) {
+    throw new Error(`Faltan en la base: ${[...missingProducts, ...missingRewards].join(", ")}. Corre primero el seed.`);
+  }
+  const bin = await db.recycleBin.findUnique({ where: { code: "CAMPUS-01" } });
+  if (!bin) throw new Error("Falta el contenedor CAMPUS-01. Corre primero el seed.");
+
+  const operator =
+    (await db.user.findUnique({ where: { email: "operador@ecopuntos.test" } })) ??
+    (await db.user.create({
+      data: {
+        email: "operador@ecopuntos.test",
+        name: "Operador Demo",
+        role: Role.OPERATOR,
+        passwordHash: await bcrypt.hash(randomBytes(32).toString("base64"), 10),
+      },
+    }));
+
+  for (const profile of DEMO_PROFILES) {
+    await seedProfile(db, profile, { ...opts, products, operatorId: operator.id, binId: bin.id });
+  }
 }
 
 async function seedProfile(
   db: PrismaClient,
   p: DemoProfile,
-  opts: { passwordHash: string; products: ProductRow[]; feSen: number; now: Date },
+  opts: Opts & { products: (EcoCriteria & { id: string; priceCents: number })[]; operatorId: string; binId: string },
 ) {
   const { now } = opts;
   const at = (daysAgo: number, hour = 12, minute = 0) => {
@@ -252,8 +273,8 @@ async function seedProfile(
   };
   const atW = ([d, h, m]: When) => at(d, h, m);
 
-  const operator = await db.user.findUniqueOrThrow({ where: { email: "operador@ecopuntos.test" } });
-  const bin = await db.recycleBin.findUniqueOrThrow({ where: { code: "CAMPUS-01" } });
+  const operator = { id: opts.operatorId };
+  const bin = { id: opts.binId };
   const createdAt = at(p.createdDaysAgo, 9, 30);
   const user = await db.user.upsert({
     where: { email: p.email },

@@ -11,6 +11,15 @@ import { PILOT_TIME_ZONE, periodRange } from "@/lib/points/limits";
 
 /** Movimientos que llevan impacto ambiental en PointEntry.impact. */
 const IMPACT_TYPES = [EntryType.BILL_REDUCTION, EntryType.BRING_CONTAINER, EntryType.RECYCLE];
+/**
+ * Las cuentas demo (correo @ecopuntos.test: las del seed y las de historial
+ * ficticio) no cuentan en las métricas del piloto, la página pública ni el CSV.
+ * Su propio "Mi impacto" sí se ve completo.
+ */
+export const DEMO_EMAIL_DOMAIN = "@ecopuntos.test";
+const REAL_USER = { NOT: { email: { endsWith: DEMO_EMAIL_DOMAIN } } };
+const REAL_ENTRY = { user: REAL_USER };
+
 /** Semanas que muestran las gráficas. */
 export const IMPACT_WEEKS = 8;
 
@@ -25,10 +34,13 @@ export async function userImpact(client: Tx, userId: string, now = new Date()) {
 /** Totales del piloto sin datos personales (página pública). */
 export async function pilotImpact(client: Tx, now = new Date()) {
   const [entries, participants, activeThisWeek] = await Promise.all([
-    client.pointEntry.findMany({ where: { type: { in: IMPACT_TYPES } }, select: { impact: true, createdAt: true } }),
-    client.pointEntry.findMany({ distinct: ["userId"], select: { userId: true } }),
     client.pointEntry.findMany({
-      where: { createdAt: { gte: periodRange("week", now).start } },
+      where: { ...REAL_ENTRY, type: { in: IMPACT_TYPES } },
+      select: { impact: true, createdAt: true },
+    }),
+    client.pointEntry.findMany({ where: REAL_ENTRY, distinct: ["userId"], select: { userId: true } }),
+    client.pointEntry.findMany({
+      where: { ...REAL_ENTRY, createdAt: { gte: periodRange("week", now).start } },
       distinct: ["userId"],
       select: { userId: true },
     }),
@@ -44,15 +56,19 @@ export async function pilotImpact(client: Tx, now = new Date()) {
 export async function adminMetrics(client: Tx, now = new Date()) {
   const [roles, earned, spent, sales, pendingBills, pendingRecycle, coupons, couponsUsed, donations, pilot] =
     await Promise.all([
-      client.user.groupBy({ by: ["role"], _count: { _all: true } }),
-      client.pointEntry.aggregate({ where: { points: { gt: 0 } }, _sum: { points: true } }),
-      client.pointEntry.aggregate({ where: { points: { lt: 0 } }, _sum: { points: true } }),
-      client.sale.aggregate({ where: { claimedAt: { not: null } }, _count: { _all: true }, _sum: { totalCents: true } }),
+      client.user.groupBy({ by: ["role"], where: REAL_USER, _count: { _all: true } }),
+      client.pointEntry.aggregate({ where: { ...REAL_ENTRY, points: { gt: 0 } }, _sum: { points: true } }),
+      client.pointEntry.aggregate({ where: { ...REAL_ENTRY, points: { lt: 0 } }, _sum: { points: true } }),
+      client.sale.aggregate({
+        where: { claimedAt: { not: null }, claimedBy: REAL_USER },
+        _count: { _all: true },
+        _sum: { totalCents: true },
+      }),
       client.bill.count({ where: { status: "PENDING" } }),
       client.recycleClaim.count({ where: { status: "PENDING" } }),
-      client.redemption.count({ where: { reward: { isDonation: false } } }),
-      client.redemption.count({ where: { reward: { isDonation: false }, usedAt: { not: null } } }),
-      client.redemption.count({ where: { reward: { isDonation: true } } }),
+      client.redemption.count({ where: { user: REAL_USER, reward: { isDonation: false } } }),
+      client.redemption.count({ where: { user: REAL_USER, reward: { isDonation: false }, usedAt: { not: null } } }),
+      client.redemption.count({ where: { user: REAL_USER, reward: { isDonation: true } } }),
       pilotImpact(client, now),
     ]);
   const count = (role: string) => roles.find((r) => r.role === role)?._count._all ?? 0;
@@ -94,6 +110,7 @@ const day = new Intl.DateTimeFormat("sv-SE", { timeZone: PILOT_TIME_ZONE, year: 
 /** Todos los movimientos del piloto, uno por renglón. */
 export async function movementsCsv(client: Tx): Promise<string> {
   const entries = await client.pointEntry.findMany({
+    where: REAL_ENTRY,
     orderBy: { createdAt: "asc" },
     select: { userId: true, type: true, points: true, impact: true, createdAt: true },
   });
@@ -119,7 +136,10 @@ export async function movementsCsv(client: Tx): Promise<string> {
 
 /** Impacto por semana desde el primer movimiento (para las gráficas del reporte). */
 export async function weeklyCsv(client: Tx, now = new Date()): Promise<string> {
-  const entries = await client.pointEntry.findMany({ select: { userId: true, type: true, points: true, impact: true, createdAt: true } });
+  const entries = await client.pointEntry.findMany({
+    where: REAL_ENTRY,
+    select: { userId: true, type: true, points: true, impact: true, createdAt: true },
+  });
   const first = entries.reduce((min, e) => Math.min(min, e.createdAt.getTime()), now.getTime());
   // Semanas desde la del primer movimiento hasta la actual (México ya no cambia de horario).
   const span = periodRange("week", now).start.getTime() - periodRange("week", new Date(first)).start.getTime();

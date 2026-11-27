@@ -98,7 +98,7 @@ async function main() {
   }
 
   // Cuentas demo con historial (datos ficticios): Enrique y Emilio.
-  await seedDemoHistories(db, { passwordHash, products, feSen: Number(process.env.FE_SEN ?? "0.444"), now });
+  await seedDemoHistories(db, { passwordHash, feSen: Number(process.env.FE_SEN ?? "0.444"), now });
 
   console.log(
     `Seed listo: ${rules.length} reglas, ${products.length} productos, 1 contenedor, ` +

@@ -14,6 +14,7 @@
     "db:seed": "bun --bun run prisma db seed",
     "db:studio": "bun --bun run prisma studio",
     "tickets:demo": "bun scripts/tickets-demo.ts",
+    "demo:cuentas": "bun scripts/demo-cuentas.ts",
     "test": "vitest run"
   },
   "dependencies": {

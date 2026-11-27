@@ -6,6 +6,7 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 import { PrismaClient, Role } from "../src/generated/prisma/client";
+import { seedEnrique } from "./seed-enrique";
 
 // Conexión directa (sin pooling) si existe, igual que las migraciones.
 const connectionString = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
@@ -95,6 +96,9 @@ async function main() {
       create: { ...u, passwordHash },
     });
   }
+
+  // Cuenta demo con 2 meses de historial (datos ficticios).
+  await seedEnrique(db, { passwordHash, products, feSen: Number(process.env.FE_SEN ?? "0.444"), now });
 
   console.log(
     `Seed listo: ${rules.length} reglas, ${products.length} productos, 1 contenedor, ` +

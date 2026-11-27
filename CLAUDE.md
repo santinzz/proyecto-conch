@@ -168,3 +168,5 @@ Corre Prisma siempre con `bun --bun run prisma …` (los scripts ya lo hacen) pa
 ## Usuarios demo (seed)
 
 `cliente@ecopuntos.test`, `operador@ecopuntos.test` y `admin@ecopuntos.test`. La contraseña es el valor de `SEED_DEMO_PASSWORD` en `.env`.
+
+`enrique@ecopuntos.test` (Enrique de Leon Lopez, cliente, misma contraseña) es una cuenta ficticia con ~2 meses de historial: compras, envases, reciclaje, dos recibos de luz, un reto completado, un cupón usado y una donación. La crea `prisma/seed-enrique.ts` con fechas relativas a cuando se corre el seed. No la siembres en la base de producción: inflaría las métricas reales del piloto.
